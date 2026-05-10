@@ -4,6 +4,6 @@
     "python": "3.12"
   },
   "deploy": {
-    "startCommand": "pip uninstall -y opencv-python && gunicorn backend.api.api_server:app --bind 0.0.0.0:$PORT --workers 1 --threads 4 --timeout 300"
+    "startCommand": "gunicorn backend.api.api_server:app --bind 0.0.0.0:$PORT --workers 1 --threads 4 --timeout 300"
   }
 }
