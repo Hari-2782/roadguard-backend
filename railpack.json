@@ -1,4 +1,4 @@
-﻿{
+{
   "$schema": "https://schema.railpack.com",
   "deploy": {
     "startCommand": "gunicorn backend.api.api_server:app --bind 0.0.0.0:$PORT --workers 1 --threads 4 --timeout 300"
