@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>RoadGuard - Login</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/styles.css">
+  <script src="js/theme.js"></script>
+</head>
+<body class="bg-slate-900 min-h-screen flex items-center justify-center p-4">
+  
+  <div class="w-full max-w-md">
+    <!-- Logo/Header -->
+    <div class="text-center mb-8">
+      <div class="inline-flex items-center justify-center w-16 h-16 bg-indigo-600 rounded-2xl mb-4">
+        <svg class="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17a2 2 0 11-4 0 2 2 0 014 0zM19 17a2 2 0 11-4 0 2 2 0 014 0z"></path>
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16V6a1 1 0 00-1-1H4a1 1 0 00-1 1v10a1 1 0 001 1h1m8-1a1 1 0 01-1 1H9m4-1V8a1 1 0 011-1h2.586a1 1 0 01.707.293l3.414 3.414a1 1 0 01.293.707V16a1 1 0 01-1 1h-1m-6-1a1 1 0 001 1h1M5 17a2 2 0 104 0m-4 0a2 2 0 114 0m6 0a2 2 0 104 0m-4 0a2 2 0 114 0"></path>
+        </svg>
+      </div>
+      <h1 class="text-2xl font-bold text-white">RoadGuard</h1>
+      <p class="text-slate-400 mt-1">ADAS System</p>
+    </div>
+
+    <!-- Login Card -->
+    <div class="glass-card rounded-2xl p-6">
+      <h2 class="text-xl font-semibold text-white mb-6">Sign In</h2>
+      
+      <form id="loginForm" class="space-y-4">
+        <div>
+          <label class="block text-sm text-slate-400 mb-2">Email or Username</label>
+          <input type="text" id="email" 
+                 class="w-full bg-slate-800 border border-slate-700 rounded-xl px-4 py-3 text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition"
+                 placeholder="you@email.com or Admin">
+        </div>
+        
+        <div>
+          <label class="block text-sm text-slate-400 mb-2">Password</label>
+          <input type="password" id="password"
+                 class="w-full bg-slate-800 border border-slate-700 rounded-xl px-4 py-3 text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition"
+                 placeholder="••••••••">
+        </div>
+
+        <button type="submit" 
+                class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-medium py-3 px-4 rounded-xl transition duration-200 flex items-center justify-center gap-2">
+          <span>Sign In</span>
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3"></path>
+          </svg>
+        </button>
+      </form>
+
+      <p id="errorMsg" class="text-red-400 text-sm mt-4 hidden"></p>
+
+      <div class="mt-6 pt-6 border-t border-slate-700">
+        <p class="text-slate-400 text-sm text-center">
+          Don't have an account? 
+          <a href="register.html" class="text-indigo-400 hover:text-indigo-300 font-medium">Create one</a>
+        </p>
+      </div>
+    </div>
+
+    <!-- Admin hint -->
+    <p class="text-center text-slate-500 text-xs mt-6">
+      Admin access: Use "Admin" / "Admin"
+    </p>
+  </div>
+
+  <script src="js/api.js"></script>
+  <script>
+    const form = document.getElementById('loginForm');
+    const errorMsg = document.getElementById('errorMsg');
+
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      errorMsg.classList.add('hidden');
+
+      const email = document.getElementById('email').value.trim();
+      const password = document.getElementById('password').value;
+
+      if (!email || !password) {
+        showError('Please fill in all fields');
+        return;
+      }
+
+      try {
+        const result = await API.login(email, password);
+        
+        if (result.ok) {
+          // Redirect based on role
+          if (result.role === 'admin') {
+            window.location.href = 'admin/dashboard.html';
+          } else {
+            window.location.href = 'user/dashboard.html';
+          }
+        } else {
+          showError(result.error || 'Login failed');
+        }
+      } catch (err) {
+        showError(err.message || 'Connection error');
+      }
+    });
+
+    function showError(msg) {
+      errorMsg.textContent = msg;
+      errorMsg.classList.remove('hidden');
+    }
+
+    // Check if already logged in
+    if (API.getToken()) {
+      const role = localStorage.getItem('role');
+      if (role === 'admin') {
+        window.location.href = 'admin/dashboard.html';
+      } else if (role) {
+        window.location.href = 'user/dashboard.html';
+      }
+    }
+  </script>
+</body>
+</html>

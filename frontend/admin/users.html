@@ -1,0 +1,287 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Users - Admin - RoadGuard</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="../css/styles.css">
+    <script src="../js/theme.js"></script>
+</head>
+
+<body class="bg-slate-900 min-h-screen">
+
+    <div class="flex">
+        <!-- Admin Sidebar -->
+        <aside class="sidebar w-64 min-h-screen p-4 fixed left-0 top-0">
+            <div class="flex items-center gap-3 mb-8 px-2">
+                <div class="w-10 h-10 bg-rose-600 rounded-xl flex items-center justify-center">
+                    <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z">
+                        </path>
+                    </svg>
+                </div>
+                <div>
+                    <h2 class="font-bold text-white">RoadGuard</h2>
+                    <p class="text-xs text-rose-400">Admin Portal</p>
+                </div>
+            </div>
+
+            <nav class="space-y-1">
+                <a href="dashboard.html" class="sidebar-link">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6">
+                        </path>
+                    </svg>
+                    <span>Dashboard</span>
+                </a>
+                <a href="users.html" class="sidebar-link active">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z">
+                        </path>
+                    </svg>
+                    <span>Users</span>
+                </a>
+                <a href="vehicles.html" class="sidebar-link">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M9 17a2 2 0 11-4 0 2 2 0 014 0zM19 17a2 2 0 11-4 0 2 2 0 014 0z"></path>
+                    </svg>
+                    <span>Vehicles</span>
+                </a>
+                <a href="calibration.html" class="sidebar-link">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z">
+                        </path>
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                    </svg>
+                    <span>Calibration</span>
+                </a>
+            </nav>
+
+            <div class="absolute bottom-4 left-4 right-4">
+                <button onclick="API.logout()" class="w-full btn btn-secondary text-sm">Logout</button>
+            </div>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="ml-64 flex-1 p-6">
+            <div class="max-w-6xl mx-auto">
+                <div class="mb-8 flex items-center justify-between">
+                    <div>
+                        <h1 class="text-2xl font-bold text-white">User Management</h1>
+                        <p class="text-slate-400 mt-1">Manage all registered users</p>
+                    </div>
+                    <button onclick="openAddModal()" class="btn btn-primary">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4">
+                            </path>
+                        </svg>
+                        Add User
+                    </button>
+                </div>
+
+                <div class="glass-card rounded-2xl overflow-hidden">
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>Name</th>
+                                <th>Email</th>
+                                <th>Role</th>
+                                <th>Vehicles</th>
+                                <th>Created</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="usersTable">
+                            <tr>
+                                <td colspan="6" class="text-center text-slate-400 py-8">Loading...</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- Add/Edit Modal -->
+    <div id="userModal" class="modal-overlay">
+        <div class="modal-content">
+            <h3 class="text-lg font-semibold text-white mb-4" id="modalTitle">Add User</h3>
+            <form id="userForm" class="space-y-4">
+                <input type="hidden" id="userId">
+                <div>
+                    <label class="form-label">Name</label>
+                    <input type="text" id="inputName" class="form-input" placeholder="John Doe">
+                </div>
+                <div>
+                    <label class="form-label">Email *</label>
+                    <input type="email" id="inputEmail" class="form-input" placeholder="user@email.com" required>
+                </div>
+                <div>
+                    <label class="form-label">Password <span id="passwordHint"
+                            class="text-slate-500">(required)</span></label>
+                    <input type="password" id="inputPassword" class="form-input" placeholder="••••••••">
+                </div>
+                <div>
+                    <label class="form-label">Role</label>
+                    <select id="inputRole" class="form-input">
+                        <option value="user">User</option>
+                        <option value="admin">Admin</option>
+                    </select>
+                </div>
+                <div class="flex gap-3 pt-2">
+                    <button type="button" onclick="Modal.close('userModal')"
+                        class="btn btn-secondary flex-1">Cancel</button>
+                    <button type="submit" class="btn btn-primary flex-1">Save</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script src="../js/api.js"></script>
+    <script src="../js/utils.js"></script>
+    <script>
+        if (!requireAuth('admin')) { }
+
+        let users = [];
+        loadUsers();
+
+        async function loadUsers() {
+            try {
+                users = await API.getAdminUsers();
+                renderTable();
+            } catch (err) {
+                Toast.error('Failed to load users');
+            }
+        }
+
+        function renderTable() {
+            const tbody = document.getElementById('usersTable');
+
+            if (users.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="6" class="text-center text-slate-400 py-8">No users</td></tr>`;
+                return;
+            }
+
+            tbody.innerHTML = users.map(u => `
+        <tr>
+          <td class="text-white font-medium">${escapeHtml(u.name || '-')}</td>
+          <td class="text-slate-300">${escapeHtml(u.email)}</td>
+          <td>
+            <span class="badge ${u.role === 'admin' ? 'badge-danger' : 'badge-info'}">
+              ${u.role}
+            </span>
+          </td>
+          <td class="text-slate-300">${u.vehicle_count || 0}</td>
+          <td class="text-slate-400 text-sm">${formatDateShort(u.created_at)}</td>
+          <td>
+            <div class="flex gap-2">
+              <button onclick="openEditModal(${u.id})" class="btn btn-icon btn-secondary" title="Edit">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path>
+                </svg>
+              </button>
+              <button onclick="deleteUser(${u.id})" class="btn btn-icon btn-secondary text-rose-400 hover:bg-rose-500/20" title="Delete">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
+                </svg>
+              </button>
+            </div>
+          </td>
+        </tr>
+      `).join('');
+        }
+
+        function openAddModal() {
+            document.getElementById('modalTitle').textContent = 'Add User';
+            document.getElementById('userId').value = '';
+            document.getElementById('inputName').value = '';
+            document.getElementById('inputEmail').value = '';
+            document.getElementById('inputPassword').value = '';
+            document.getElementById('inputPassword').required = true;
+            document.getElementById('passwordHint').textContent = '(required)';
+            document.getElementById('inputRole').value = 'user';
+            Modal.open('userModal');
+        }
+
+        function openEditModal(id) {
+            const u = users.find(x => x.id === id);
+            if (!u) return;
+
+            document.getElementById('modalTitle').textContent = 'Edit User';
+            document.getElementById('userId').value = id;
+            document.getElementById('inputName').value = u.name || '';
+            document.getElementById('inputEmail').value = u.email;
+            document.getElementById('inputPassword').value = '';
+            document.getElementById('inputPassword').required = false;
+            document.getElementById('passwordHint').textContent = '(leave blank to keep)';
+            document.getElementById('inputRole').value = u.role;
+            Modal.open('userModal');
+        }
+
+        document.getElementById('userForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+
+            const id = document.getElementById('userId').value;
+            const data = {
+                name: document.getElementById('inputName').value.trim(),
+                email: document.getElementById('inputEmail').value.trim(),
+                role: document.getElementById('inputRole').value
+            };
+
+            const password = document.getElementById('inputPassword').value;
+            if (password) data.password = password;
+
+            try {
+                if (id) {
+                    await API.updateUser(id, data);
+                    Toast.success('User updated');
+                } else {
+                    if (!password) {
+                        Toast.error('Password required for new users');
+                        return;
+                    }
+                    const result = await API.addUser(data);
+                    if (result.error) {
+                        Toast.error(result.error);
+                        return;
+                    }
+                    Toast.success('User created');
+                }
+                Modal.close('userModal');
+                loadUsers();
+            } catch (err) {
+                Toast.error('Failed to save user');
+            }
+        });
+
+        async function deleteUser(id) {
+            const u = users.find(x => x.id === id);
+            if (u && u.role === 'admin') {
+                Toast.error('Cannot delete admin user');
+                return;
+            }
+
+            const confirmed = await Modal.confirm('This will permanently delete this user and all their vehicles. Continue?', 'Delete User');
+            if (!confirmed) return;
+
+            try {
+                await API.deleteUser(id);
+                Toast.success('User deleted');
+                loadUsers();
+            } catch (err) {
+                Toast.error('Failed to delete user');
+            }
+        }
+    </script>
+</body>
+
+</html>

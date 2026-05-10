@@ -1,0 +1,7 @@
+path: C:/Users/mural/OneDrive/Desktop/RESEARCH/Road Traffic Sign In Sri Lanka.v4i.yolov8
+train: train/images
+val: valid/images
+test: test/images
+
+nc: 37
+names: ['Bus-stop', 'Compulsory-Roundabout', 'Cross-Roads-Ahead', 'Double-Bend-to-Left-Ahead', 'Double-Bend-to-Right-Ahead', 'Falling-Rocks-Ahead', 'Left-Bend-Ahead', 'Level-crossing-with-barriers-ahead', 'Level-crossing-without-barriers-ahead', 'Narrow-Bridge-or-Culvert-Ahead', 'No-entry', 'No-horns', 'No-left-turn', 'No-parking', 'No-parking-and-standing', 'No-parking-on-even-numbered-days', 'No-parking-on-odd-numbered-days', 'No-right-turn', 'No-u-turn', 'Pedestrian-Crossing', 'Pedestrian-crossing-Ahead', 'Proceed-straight', 'Right-Bend-Ahead', 'Road-Bump-Ahead', 'Road-Closed-for-All-Vehicles', 'Roundabout-Ahead', 'Speed-Limit-40-Kmph', 'Speed-Limit-50-Kmph', 'Speed-Limit-60-Kmph', 'Stop', 'T-Junction-Ahead', 'Traffic-from-left-merges-ahead', 'Traffic-from-right-merges-ahead', 'Turn-left', 'Turn-left-ahead', 'Turn-right', 'Turn-right-ahead']

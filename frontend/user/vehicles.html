@@ -1,0 +1,306 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>My Vehicles - RoadGuard</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="../css/styles.css">
+    <script src="../js/theme.js"></script>
+</head>
+
+<body class="bg-slate-900 min-h-screen">
+
+    <div class="flex">
+        <!-- Sidebar -->
+        <aside class="sidebar w-64 min-h-screen p-4 fixed left-0 top-0 bg-slate-900 border-r border-slate-800 z-50">
+            <div class="flex items-center gap-3 mb-8 px-2">
+                <div
+                    class="w-10 h-10 bg-indigo-600 rounded-xl flex items-center justify-center shadow-lg shadow-indigo-500/20">
+                    <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                    </svg>
+                </div>
+                <div>
+                    <h2 class="font-bold text-white text-lg">RoadGuard AI</h2>
+                    <p class="text-xs text-slate-400">Safety Intelligence Suite</p>
+                </div>
+            </div>
+
+            <nav class="space-y-1">
+                <a href="dashboard.html"
+                    class="flex items-center gap-3 px-3 py-2 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M13 10V3L4 14h7v7l9-11h-7z"></path>
+                    </svg>
+                    <span class="font-medium">Risk Dashboard</span>
+                </a>
+                <a href="analysis.html"
+                    class="flex items-center gap-3 px-3 py-2 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M7 12l3-3 3 3 4-4M8 21l4-4 4 4M3 4h18M4 4h16v12a1 1 0 01-1 1H5a1 1 0 01-1-1V4z"></path>
+                    </svg>
+                    <span>Analysis & Upload</span>
+                </a>
+                <a href="sensors.html"
+                    class="flex items-center gap-3 px-3 py-2 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z">
+                        </path>
+                    </svg>
+                    <span>Driver Behavior</span>
+                </a>
+                <a href="vehicles.html"
+                    class="flex items-center gap-3 px-3 py-2 rounded-lg bg-indigo-600/10 text-indigo-400">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M9 17a2 2 0 11-4 0 2 2 0 014 0zM19 17a2 2 0 11-4 0 2 2 0 014 0z"></path>
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M13 16V6a1 1 0 00-1-1H4a1 1 0 00-1 1v10l2 2h6l2-2zm0 0h4a1 1 0 001-1v-4l-3-5h-2"></path>
+                    </svg>
+                    <span class="font-medium">My Vehicles</span>
+                </a>
+                <a href="pothole.html"
+                    class="flex items-center gap-3 px-3 py-2 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7"></path>
+                    </svg>
+                    <span>Pothole Analysis</span>
+                </a>
+                <a href="hazard.html"
+                    class="flex items-center gap-3 px-3 py-2 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7"></path>
+                    </svg>
+                    <span>Hazard Analytics</span>
+                </a>
+            </nav>
+
+            <div class="absolute bottom-4 left-4 right-4">
+                <div class="p-3 rounded-xl bg-slate-800/50 mb-3 border border-slate-700">
+                    <p class="text-xs text-slate-400">Logged in as</p>
+                    <p class="text-sm text-white font-medium truncate" id="sidebarUser">User</p>
+                </div>
+                <button onclick="API.logout()"
+                    class="w-full py-2 px-4 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 text-sm font-medium transition">Logout</button>
+            </div>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="ml-64 flex-1 p-6">
+            <div class="max-w-6xl mx-auto">
+                <!-- Header -->
+                <div class="mb-8 flex items-center justify-between">
+                    <div>
+                        <h1 class="text-2xl font-bold text-white">My Vehicles</h1>
+                        <p class="text-slate-400 mt-1">Manage your registered vehicles</p>
+                    </div>
+                    <button onclick="openAddModal()" class="btn btn-primary">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4">
+                            </path>
+                        </svg>
+                        Add Vehicle
+                    </button>
+                </div>
+
+                <!-- Vehicles Table -->
+                <div class="glass-card rounded-2xl overflow-hidden">
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>Vehicle ID</th>
+                                <th>Label</th>
+                                <th>Speed Limit</th>
+                                <th>Violations</th>
+                                <th>Created</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="vehiclesTable">
+                            <tr>
+                                <td colspan="6" class="text-center text-slate-400 py-8">Loading...</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- Add/Edit Modal -->
+    <div id="vehicleModal" class="modal-overlay">
+        <div class="modal-content">
+            <h3 class="text-lg font-semibold text-white mb-4" id="modalTitle">Add Vehicle</h3>
+            <form id="vehicleForm" class="space-y-4">
+                <input type="hidden" id="vehicleId">
+                <div>
+                    <label class="form-label">Vehicle ID *</label>
+                    <input type="text" id="inputVehicleId" class="form-input" placeholder="e.g., BUS_01" required>
+                </div>
+                <div>
+                    <label class="form-label">Label</label>
+                    <input type="text" id="inputLabel" class="form-input" placeholder="e.g., School Van">
+                </div>
+                <div>
+                    <label class="form-label">Default Speed Limit (km/h)</label>
+                    <input type="number" id="inputSpeedLimit" class="form-input" placeholder="e.g., 60" min="10"
+                        max="200">
+                </div>
+                <div>
+                    <label class="form-label">Notes</label>
+                    <textarea id="inputNotes" class="form-input" rows="2" placeholder="Optional notes"></textarea>
+                </div>
+                <div class="flex gap-3 pt-2">
+                    <button type="button" onclick="Modal.close('vehicleModal')"
+                        class="btn btn-secondary flex-1">Cancel</button>
+                    <button type="submit" class="btn btn-primary flex-1">Save</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script src="../js/api.js"></script>
+    <script src="../js/utils.js"></script>
+    <script>
+        if (!requireAuth()) { }
+
+        let vehicles = [];
+
+        loadVehicles();
+
+        async function loadVehicles() {
+            try {
+                vehicles = await API.getUserVehicles();
+                renderTable();
+            } catch (err) {
+                Toast.error('Failed to load vehicles');
+            }
+        }
+
+        function renderTable() {
+            const tbody = document.getElementById('vehiclesTable');
+
+            if (vehicles.length === 0) {
+                tbody.innerHTML = `
+          <tr>
+            <td colspan="6" class="text-center text-slate-400 py-8">
+              No vehicles yet. Click "Add Vehicle" to get started.
+            </td>
+          </tr>
+        `;
+                return;
+            }
+
+            tbody.innerHTML = vehicles.map(v => `
+        <tr>
+          <td>
+            <a href="vehicle-detail.html?id=${v.id}" class="text-indigo-400 hover:text-indigo-300 font-medium">
+              ${escapeHtml(v.vehicle_id)}
+            </a>
+          </td>
+          <td class="text-slate-300">${escapeHtml(v.label || '-')}</td>
+          <td class="text-slate-300">${v.speed_limit_kmh ? v.speed_limit_kmh + ' km/h' : '-'}</td>
+          <td>
+            <span class="badge ${v.total_events > 0 ? 'badge-warning' : 'badge-success'}">
+              ${v.total_events || 0}
+            </span>
+          </td>
+          <td class="text-slate-400 text-sm">${formatDateShort(v.created_at)}</td>
+          <td>
+            <div class="flex gap-2">
+              <button onclick="openEditModal(${v.id})" class="btn btn-icon btn-secondary" title="Edit">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path>
+                </svg>
+              </button>
+              <button onclick="deleteVehicle(${v.id})" class="btn btn-icon btn-secondary text-rose-400 hover:bg-rose-500/20" title="Delete">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
+                </svg>
+              </button>
+            </div>
+          </td>
+        </tr>
+      `).join('');
+        }
+
+        function openAddModal() {
+            document.getElementById('modalTitle').textContent = 'Add Vehicle';
+            document.getElementById('vehicleId').value = '';
+            document.getElementById('inputVehicleId').value = '';
+            document.getElementById('inputVehicleId').disabled = false;
+            document.getElementById('inputLabel').value = '';
+            document.getElementById('inputSpeedLimit').value = '';
+            document.getElementById('inputNotes').value = '';
+            Modal.open('vehicleModal');
+        }
+
+        function openEditModal(id) {
+            const v = vehicles.find(x => x.id === id);
+            if (!v) return;
+
+            document.getElementById('modalTitle').textContent = 'Edit Vehicle';
+            document.getElementById('vehicleId').value = id;
+            document.getElementById('inputVehicleId').value = v.vehicle_id;
+            document.getElementById('inputVehicleId').disabled = true;
+            document.getElementById('inputLabel').value = v.label || '';
+            document.getElementById('inputSpeedLimit').value = v.speed_limit_kmh || '';
+            document.getElementById('inputNotes').value = v.notes || '';
+            Modal.open('vehicleModal');
+        }
+
+        document.getElementById('vehicleForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+
+            const id = document.getElementById('vehicleId').value;
+            const data = {
+                vehicle_id: document.getElementById('inputVehicleId').value.trim(),
+                label: document.getElementById('inputLabel').value.trim(),
+                speed_limit_kmh: document.getElementById('inputSpeedLimit').value || null,
+                notes: document.getElementById('inputNotes').value.trim()
+            };
+
+            try {
+                if (id) {
+                    await API.updateVehicle(id, data);
+                    Toast.success('Vehicle updated');
+                } else {
+                    const result = await API.addVehicle(data);
+                    if (result.error) {
+                        Toast.error(result.error);
+                        return;
+                    }
+                    Toast.success('Vehicle added');
+                }
+                Modal.close('vehicleModal');
+                loadVehicles();
+            } catch (err) {
+                Toast.error('Failed to save vehicle');
+            }
+        });
+
+        async function deleteVehicle(id) {
+            const confirmed = await Modal.confirm('This will permanently delete this vehicle and its data. Continue?', 'Delete Vehicle');
+            if (!confirmed) return;
+
+            try {
+                await API.deleteVehicle(id);
+                Toast.success('Vehicle deleted');
+                loadVehicles();
+            } catch (err) {
+                Toast.error('Failed to delete vehicle');
+            }
+        }
+    </script>
+</body>
+
+</html>

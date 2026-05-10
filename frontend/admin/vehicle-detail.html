@@ -1,0 +1,331 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Vehicle Detail - RoadGuard</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="../css/styles.css">
+    <script src="../js/theme.js"></script>
+</head>
+
+<body class="bg-slate-900 min-h-screen">
+
+    <div class="flex">
+        <!-- Sidebar -->
+        <aside class="sidebar w-64 min-h-screen p-4 fixed left-0 top-0">
+            <div class="flex items-center gap-3 mb-8 px-2">
+                <div class="w-10 h-10 bg-rose-600 rounded-xl flex items-center justify-center">
+                    <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z">
+                        </path>
+                    </svg>
+                </div>
+                <div>
+                    <h2 class="font-bold text-white">RoadGuard</h2>
+                    <p class="text-xs text-rose-400">Admin Portal</p>
+                </div>
+            </div>
+
+            <nav class="space-y-1">
+                <a href="dashboard.html" class="sidebar-link">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6">
+                        </path>
+                    </svg>
+                    <span>Dashboard</span>
+                </a>
+                <a href="users.html" class="sidebar-link">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z">
+                        </path>
+                    </svg>
+                    <span>Users</span>
+                </a>
+                <a href="vehicles.html" class="sidebar-link active">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M9 17a2 2 0 11-4 0 2 2 0 014 0zM19 17a2 2 0 11-4 0 2 2 0 014 0z"></path>
+                    </svg>
+                    <span>Vehicles</span>
+                </a>
+                <a href="calibration.html" class="sidebar-link">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35">
+                        </path>
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                    </svg>
+                    <span>Calibration</span>
+                </a>
+            </nav>
+
+            <div class="absolute bottom-4 left-4 right-4">
+                <button onclick="API.logout()" class="w-full btn btn-secondary text-sm">Logout</button>
+            </div>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="ml-64 flex-1 p-6">
+            <div class="max-w-6xl mx-auto">
+                <!-- Back link -->
+                <a href="vehicles.html"
+                    class="inline-flex items-center gap-2 text-slate-400 hover:text-white mb-4 text-sm">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7">
+                        </path>
+                    </svg>
+                    Back to Vehicles
+                </a>
+
+                <!-- Vehicle Info Card -->
+                <div class="glass-card rounded-2xl p-6 mb-6">
+                    <div class="flex items-start justify-between">
+                        <div>
+                            <h1 class="text-2xl font-bold text-white" id="vehicleTitle">Loading...</h1>
+                            <p class="text-slate-400 mt-1" id="vehicleLabel"></p>
+                        </div>
+                        <button onclick="openEditModal()" class="btn btn-secondary">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z">
+                                </path>
+                            </svg>
+                            Edit Settings
+                        </button>
+                    </div>
+
+                    <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mt-6">
+                        <div class="bg-slate-800/50 rounded-xl p-4">
+                            <p class="text-sm text-slate-400">Speed Limit</p>
+                            <p class="text-xl font-bold text-white" id="statSpeed">-</p>
+                        </div>
+                        <div class="bg-slate-800/50 rounded-xl p-4">
+                            <p class="text-sm text-slate-400">Total Events</p>
+                            <p class="text-xl font-bold text-white" id="statTotal">-</p>
+                        </div>
+                        <div class="bg-slate-800/50 rounded-xl p-4">
+                            <p class="text-sm text-rose-400">Lane Violations</p>
+                            <p class="text-xl font-bold text-rose-400" id="statLane">-</p>
+                        </div>
+                        <div class="bg-slate-800/50 rounded-xl p-4">
+                            <p class="text-sm text-amber-400">Overspeed</p>
+                            <p class="text-xl font-bold text-amber-400" id="statOverspeed">-</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Violation History -->
+                <div class="glass-card rounded-2xl overflow-hidden">
+                    <div class="p-4 border-b border-slate-700">
+                        <h2 class="font-semibold text-white">Violation History</h2>
+                    </div>
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>Date/Time</th>
+                                <th>Type</th>
+                                <th>Value</th>
+                                <th>Details</th>
+                                <th>Evidence</th>
+                            </tr>
+                        </thead>
+                        <tbody id="eventsTable">
+                            <tr>
+                                <td colspan="5" class="text-center text-slate-400 py-8">Loading...</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- Edit Modal -->
+    <div id="editModal" class="modal-overlay">
+        <div class="modal-content">
+            <h3 class="text-lg font-semibold text-white mb-4">Vehicle Settings</h3>
+            <form id="editForm" class="space-y-4">
+                <div>
+                    <label class="form-label">Label</label>
+                    <input type="text" id="inputLabel" class="form-input" placeholder="e.g., School Van">
+                </div>
+                <div>
+                    <label class="form-label">Default Speed Limit (km/h)</label>
+                    <input type="number" id="inputSpeedLimit" class="form-input" placeholder="e.g., 60" min="10"
+                        max="200">
+                    <p class="text-xs text-slate-500 mt-1">Used when no speed sign is detected</p>
+                </div>
+                <div>
+                    <label class="form-label">Lane Sensitivity (px)</label>
+                    <input type="number" id="inputLaneSensitivity" class="form-input" placeholder="e.g., 40" min="10"
+                        max="200">
+                </div>
+                <div class="flex gap-3 pt-2">
+                    <button type="button" onclick="Modal.close('editModal')"
+                        class="btn btn-secondary flex-1">Cancel</button>
+                    <button type="submit" class="btn btn-primary flex-1">Save</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Image Modal -->
+    <div id="imageModal" class="modal-overlay" onclick="Modal.close('imageModal')">
+        <div class="max-w-4xl max-h-[90vh] p-2" onclick="event.stopPropagation()">
+            <img id="evidenceImage" src="" class="max-w-full max-h-[85vh] rounded-lg">
+            <div class="text-center mt-2">
+                <p class="text-white font-medium" id="evidenceInfo"></p>
+            </div>
+        </div>
+    </div>
+
+    <script src="../js/api.js"></script>
+    <script src="../js/utils.js"></script>
+    <script>
+        if (!requireAuth('admin')) { }
+
+        const urlParams = new URLSearchParams(window.location.search);
+        const vehicleId = urlParams.get('id');
+        let vehicle = null;
+
+        if (!vehicleId) {
+            window.location.href = 'vehicles.html';
+        }
+
+        loadVehicle();
+
+        async function loadVehicle() {
+            try {
+                vehicle = await API.getAdminVehicle(vehicleId);
+
+                if (!vehicle || vehicle.error) {
+                    Toast.error('Vehicle not found');
+                    window.location.href = 'vehicles.html';
+                    return;
+                }
+
+                document.getElementById('vehicleTitle').textContent = vehicle.vehicle_id;
+                document.getElementById('vehicleLabel').textContent =
+                    (vehicle.label || 'No label') + (vehicle.owner_name ? ` — Owner: ${vehicle.owner_name}` : '');
+                document.getElementById('statSpeed').textContent = vehicle.speed_limit_kmh ? `${vehicle.speed_limit_kmh} km/h` : 'Not set';
+                document.getElementById('statTotal').textContent = vehicle.total_events || 0;
+                document.getElementById('statLane').textContent = vehicle.lane_count || 0;
+                document.getElementById('statOverspeed').textContent = vehicle.overspeed_count || 0;
+
+                loadEvents();
+            } catch (err) {
+                Toast.error('Failed to load vehicle');
+            }
+        }
+
+        async function loadEvents() {
+            try {
+                const events = await API.getAdminVehicleEvents(vehicleId);
+                const tbody = document.getElementById('eventsTable');
+
+                if (events.length === 0) {
+                    tbody.innerHTML = `
+            <tr>
+              <td colspan="5" class="text-center text-slate-400 py-8">No violations recorded</td>
+            </tr>
+          `;
+                    return;
+                }
+
+                tbody.innerHTML = events.map(e => `
+          <tr>
+            <td class="text-slate-300">${formatDate(e.ts)}</td>
+            <td>${getViolationBadge(e.type)}</td>
+            <td class="text-slate-300">${e.value ? e.value.toFixed(1) : '-'}</td>
+            <td class="text-slate-400 text-sm max-w-xs">
+              ${e.details ? `<span class="cursor-pointer hover:text-indigo-400 underline" 
+                   onclick="showDetailsModal('${escapeHtml(e.details)}', '${formatDate(e.ts)}', '${e.type}')"
+                   title="Click to view full details">${escapeHtml(e.details.substring(0, 50))}${e.details.length > 50 ? '...' : ''}</span>` : '-'}
+            </td>
+            <td>
+              ${getEvidenceLink(e)}
+            </td>
+          </tr>
+        `).join('');
+            } catch (err) {
+                console.error(err);
+            }
+        }
+
+        function showImage(src, info) {
+            document.getElementById('evidenceImage').src = src;
+            document.getElementById('evidenceInfo').textContent = info;
+            Modal.open('imageModal');
+        }
+
+        function getImageFromDetails(details) {
+            if (!details) return null;
+            const match = details.match(/evidence=([^\s]+\.jpg)/);
+            return match ? match[1] : null;
+        }
+
+        function getEvidenceLink(e) {
+            if (e.image_path) {
+                return `<img src="/evidence/${e.image_path}" 
+                     class="evidence-thumb cursor-pointer" 
+                     onclick="showImage('/evidence/${e.image_path}', '${formatDate(e.ts)}')"
+                     alt="Evidence" title="Click to view">`;
+            }
+            const imgFromDetails = getImageFromDetails(e.details);
+            if (imgFromDetails) {
+                return `<img src="/evidence/${imgFromDetails}" 
+                     class="evidence-thumb cursor-pointer" 
+                     onclick="showImage('/evidence/${imgFromDetails}', '${formatDate(e.ts)}')"
+                     alt="Evidence" title="Click to view">`;
+            }
+            return '<span class="text-slate-500">-</span>';
+        }
+
+        function showDetailsModal(details, timestamp, type) {
+            document.getElementById('evidenceImage').src = '';
+            document.getElementById('evidenceInfo').innerHTML = `
+                <div class="text-left bg-slate-800 rounded-lg p-4 max-w-lg">
+                    <div class="text-sm text-slate-400 mb-2">${timestamp}</div>
+                    <div class="text-lg font-semibold text-white mb-3">${getViolationBadge(type)}</div>
+                    <div class="text-slate-300 whitespace-pre-wrap">${details}</div>
+                </div>
+            `;
+            Modal.open('imageModal');
+        }
+
+        function openEditModal() {
+            document.getElementById('inputLabel').value = vehicle.label || '';
+            document.getElementById('inputSpeedLimit').value = vehicle.speed_limit_kmh || '';
+            document.getElementById('inputLaneSensitivity').value = vehicle.lane_sensitivity_px || '';
+            Modal.open('editModal');
+        }
+
+        document.getElementById('editForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+
+            const data = {
+                label: document.getElementById('inputLabel').value.trim(),
+                speed_limit_kmh: document.getElementById('inputSpeedLimit').value || null,
+                lane_sensitivity_px: document.getElementById('inputLaneSensitivity').value || null
+            };
+
+            try {
+                await API.updateAdminVehicle(vehicleId, data);
+                Toast.success('Settings saved');
+                Modal.close('editModal');
+                loadVehicle();
+            } catch (err) {
+                Toast.error('Failed to save');
+            }
+        });
+    </script>
+</body>
+
+</html>

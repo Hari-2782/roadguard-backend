@@ -1,0 +1,1068 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Driver Behavior - RoadGuard Platform</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.plot.ly/plotly-2.27.0.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap"
+        rel="stylesheet">
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script src="https://leaflet.github.io/Leaflet.heat/dist/leaflet-heat.js"></script>
+    <link rel="stylesheet" href="../css/styles.css">
+    <script src="../js/theme.js"></script>
+    <style>
+        /* Premium Design System */
+        :root {
+            --accent-main: #6366f1;
+            --accent-glow: rgba(99, 102, 241, 0.4);
+            --glass-bg: rgba(15, 23, 42, 0.7);
+            --glass-border: rgba(255, 255, 255, 0.08);
+        }
+
+        .glass-panel {
+            background: var(--glass-bg);
+            backdrop-filter: blur(12px);
+            border: 1px solid var(--glass-border);
+            border-radius: 1.5rem;
+            box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+            transition: all 0.4s cubic-bezier(0.23, 1, 0.32, 1);
+        }
+
+        .glass-panel:hover {
+            border-color: rgba(99, 102, 241, 0.3);
+            box-shadow: 0 12px 48px 0 rgba(99, 102, 241, 0.1);
+        }
+
+        /* Animated background for active elements */
+        .ai-gradient-bg {
+            background: linear-gradient(-45deg, #6366f1, #a855f7, #ec4899, #6366f1);
+            background-size: 400% 400%;
+            animation: gradient-flow 15s ease infinite;
+        }
+
+        @keyframes gradient-flow {
+            0% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
+        }
+
+        /* Step Indicator */
+        .step-bubble {
+            width: 48px;
+            height: 48px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 1rem;
+            position: relative;
+            z-index: 10;
+        }
+
+        .step-bubble::after {
+            content: '';
+            position: absolute;
+            inset: -4px;
+            background: inherit;
+            filter: blur(12px);
+            opacity: 0.4;
+            border-radius: inherit;
+            z-index: -1;
+        }
+
+        /* Upload zone overhaul */
+        .upload-zone {
+            background: rgba(15, 23, 42, 0.4);
+            border: 2px dashed rgba(255, 255, 255, 0.1);
+            border-radius: 2rem;
+            transition: all 0.5s cubic-bezier(0.165, 0.84, 0.44, 1);
+        }
+
+        .upload-zone:hover {
+            background: rgba(99, 102, 241, 0.05);
+            border-color: var(--accent-main);
+            box-shadow: 0 0 60px rgba(99, 102, 241, 0.15);
+            transform: scale(1.005);
+        }
+
+        /* Stats visuals */
+        .stat-value {
+            background: linear-gradient(to bottom right, #fff, #94a3b8);
+            -webkit-background-clip: text;
+            background-clip: text;
+            -webkit-text-fill-color: transparent;
+            font-weight: 800;
+        }
+
+        /* Legend Tags */
+        .modern-legend {
+            background: rgba(255, 255, 255, 0.03);
+            padding: 2px 12px;
+            border-radius: 99px;
+            font-size: 11px;
+            color: #94a3b8;
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .dot {
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+        }
+
+        /* Chart card */
+        .chart-card {
+            background: rgba(15, 23, 42, 0.3);
+            border: 1px solid rgba(255, 255, 255, 0.03);
+            border-radius: 1.5rem;
+            padding: 1.5rem;
+        }
+
+        #safetyMap .leaflet-container,
+        #safetyMap {
+            background: #020617;
+        }
+    </style>
+</head>
+
+<body class="bg-slate-900 min-h-screen text-slate-100 font-sans">
+
+    <div class="flex">
+        <!-- Sidebar -->
+        <aside class="sidebar w-64 min-h-screen p-4 fixed left-0 top-0 bg-slate-900 border-r border-slate-800 z-50">
+            <div class="flex items-center gap-3 mb-8 px-2">
+                <div
+                    class="w-10 h-10 bg-indigo-600 rounded-xl flex items-center justify-center shadow-lg shadow-indigo-500/20">
+                    <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                    </svg>
+                </div>
+                <div>
+                    <h2 class="font-bold text-white text-lg">RoadGuard AI</h2>
+                    <p class="text-xs text-slate-400">Safety Intelligence Suite</p>
+                </div>
+            </div>
+
+            <nav class="space-y-1">
+                <a href="dashboard.html"
+                    class="flex items-center gap-3 px-3 py-2 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M13 10V3L4 14h7v7l9-11h-7z"></path>
+                    </svg>
+                    <span class="font-medium">Risk Dashboard</span>
+                </a>
+                <a href="analysis.html"
+                    class="flex items-center gap-3 px-3 py-2 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M7 12l3-3 3 3 4-4M8 21l4-4 4 4M3 4h18M4 4h16v12a1 1 0 01-1 1H5a1 1 0 01-1-1V4z"></path>
+                    </svg>
+                    <span>Analysis & Upload</span>
+                </a>
+                <a href="sensors.html"
+                    class="flex items-center gap-3 px-3 py-2 rounded-lg bg-indigo-600/10 text-indigo-400">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z">
+                        </path>
+                    </svg>
+                    <span>Driver Behavior</span>
+                </a>
+                <a href="vehicles.html"
+                    class="flex items-center gap-3 px-3 py-2 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M9 17a2 2 0 11-4 0 2 2 0 014 0zM19 17a2 2 0 11-4 0 2 2 0 014 0z"></path>
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M13 16V6a1 1 0 00-1-1H4a1 1 0 00-1 1v10l2 2h6l2-2zm0 0h4a1 1 0 001-1v-4l-3-5h-2"></path>
+                    </svg>
+                    <span>My Vehicles</span>
+                </a>
+                <a href="pothole.html"
+                    class="flex items-center gap-3 px-3 py-2 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7"></path>
+                    </svg>
+                    <span>Pothole Analytics</span>
+                </a>
+                <a href="hazard.html"
+                    class="flex items-center gap-3 px-3 py-2 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7"></path>
+                    </svg>
+                    <span>Hazard Analytics</span>
+                </a>
+            </nav>
+
+            <div class="absolute bottom-4 left-4 right-4">
+                <div class="p-3 rounded-xl bg-slate-800/50 mb-3 border border-slate-700">
+                    <p class="text-xs text-slate-400">Logged in as</p>
+                    <p class="text-sm text-white font-medium truncate" id="userName">User</p>
+                </div>
+                <button onclick="API.logout()"
+                    class="w-full py-2 px-4 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 text-sm font-medium transition flex items-center justify-center gap-2">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1">
+                        </path>
+                    </svg>
+                    Logout
+                </button>
+            </div>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="ml-64 flex-1 p-8">
+            <div class="max-w-7xl mx-auto">
+
+                <!-- Header -->
+                <div class="mb-6">
+                    <h1
+                        class="text-3xl font-extrabold bg-gradient-to-r from-indigo-400 via-purple-400 to-pink-400 bg-clip-text text-transparent tracking-tight">
+                        Driver Behavior Analytics
+                    </h1>
+                    <p class="text-slate-400 mt-1 text-sm">IMU telemetry inference with Hybrid Fusion (Physics + ONNX
+                        Ensemble)</p>
+                </div>
+
+                <!-- ═══════════ TAB BUTTONS ═══════════ -->
+                <div class="flex gap-1 mb-8 bg-slate-800/50 rounded-xl p-1 border border-slate-700/50 w-fit">
+                    <button class="tab-btn active px-5 py-2.5 rounded-lg text-sm font-semibold text-slate-300"
+                        onclick="switchTab('single')" id="tabSingle">
+                        <span class="flex items-center gap-2">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z">
+                                </path>
+                            </svg>
+                            Single Window (30 rows)
+                        </span>
+                    </button>
+                    <button class="tab-btn px-5 py-2.5 rounded-lg text-sm font-semibold text-slate-500"
+                        onclick="switchTab('continuous')" id="tabContinuous">
+                        <span class="flex items-center gap-2">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"></path>
+                            </svg>
+                            Continuous Analysis
+                        </span>
+                    </button>
+                    <button class="tab-btn px-5 py-2.5 rounded-lg text-sm font-semibold text-slate-500"
+                        onclick="switchTab('heatmap')" id="tabHeatmap">
+                        <span class="flex items-center gap-2">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z">
+                                </path>
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                            </svg>
+                            Safety Heatmap
+                        </span>
+                    </button>
+                </div>
+
+                <!-- ═══════════════════════════════════════════════════════════
+                     TAB 1 — SINGLE WINDOW (Original sensors.html logic)
+                     ═══════════════════════════════════════════════════════════ -->
+                <div id="panelSingle">
+
+                    <!-- Flow Diagram -->
+                    <div
+                        class="bg-indigo-900/40 border border-indigo-500/30 rounded-2xl p-6 mb-8 flex items-center justify-between text-indigo-200 text-sm">
+                        <div class="text-center w-1/4">
+                            <div
+                                class="bg-indigo-500 text-white w-10 h-10 rounded-full flex items-center justify-center mx-auto mb-2 font-bold shadow-lg shadow-indigo-500/50">
+                                1</div>
+                            Upload CSV<br><span class="text-xs text-indigo-400">(30 rows @ 20Hz)</span>
+                        </div>
+                        <svg class="w-6 h-6 text-indigo-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M17 8l4 4m0 0l-4 4m4-4H3"></path>
+                        </svg>
+                        <div class="text-center w-1/4">
+                            <div
+                                class="bg-indigo-500 text-white w-10 h-10 rounded-full flex items-center justify-center mx-auto mb-2 font-bold shadow-lg shadow-indigo-500/50">
+                                2</div>
+                            Kalman Filter<br><span class="text-xs text-indigo-400">(Noise Reduction)</span>
+                        </div>
+                        <svg class="w-6 h-6 text-indigo-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M17 8l4 4m0 0l-4 4m4-4H3"></path>
+                        </svg>
+                        <div class="text-center w-1/4">
+                            <div
+                                class="bg-indigo-500 text-white w-10 h-10 rounded-full flex items-center justify-center mx-auto mb-2 font-bold shadow-lg shadow-indigo-500/50">
+                                3</div>
+                            Physics + ONNX<br><span class="text-xs text-indigo-400">(Soft Fusion)</span>
+                        </div>
+                        <svg class="w-6 h-6 text-indigo-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M17 8l4 4m0 0l-4 4m4-4H3"></path>
+                        </svg>
+                        <div class="text-center w-1/4">
+                            <div
+                                class="bg-indigo-500 text-white w-10 h-10 rounded-full flex items-center justify-center mx-auto mb-2 font-bold shadow-lg shadow-indigo-500/50">
+                                4</div>
+                            Detection<br><span class="text-xs text-indigo-400">(Actionable Insight)</span>
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+                        <!-- Upload Section -->
+                        <div class="bg-slate-800 border border-slate-700 rounded-2xl p-6">
+                            <h3 class="text-white font-bold mb-4 flex items-center gap-2">
+                                <svg class="w-5 h-5 text-indigo-400" fill="none" stroke="currentColor"
+                                    viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                        d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"></path>
+                                </svg>
+                                Sensor Data Upload
+                            </h3>
+                            <div class="border-2 border-dashed border-slate-600 rounded-xl p-8 text-center hover:border-indigo-500 transition cursor-pointer"
+                                id="dropZoneSingle" onclick="document.getElementById('fileInputSingle').click()">
+                                <svg class="w-12 h-12 text-slate-500 mx-auto mb-4" fill="none" stroke="currentColor"
+                                    viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                        d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z">
+                                    </path>
+                                </svg>
+                                <p class="text-slate-300 font-medium mb-1">Select CSV File</p>
+                                <p class="text-slate-500 text-sm">Must contain accelX, accelY, accelZ, gyroX, gyroY,
+                                    gyroZ, speed</p>
+                                <input type="file" id="fileInputSingle" class="hidden" accept=".csv"
+                                    onchange="handleSingleFileSelect(event)">
+                            </div>
+                            <div id="fileInfoSingle"
+                                class="mt-4 p-3 bg-slate-900 rounded-lg border border-slate-700 hidden items-center justify-between">
+                                <div class="flex items-center gap-3">
+                                    <svg class="w-5 h-5 text-emerald-500" fill="none" stroke="currentColor"
+                                        viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                            d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                                    </svg>
+                                    <span class="text-sm text-white font-medium truncate max-w-[200px]"
+                                        id="fileNameSingle">data.csv</span>
+                                </div>
+                                <button onclick="uploadSingleCSV()" id="uploadBtnSingle"
+                                    class="px-4 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-medium rounded-md transition disabled:opacity-50">
+                                    Analyze Data
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Result Section -->
+                        <div class="bg-slate-800 border border-slate-700 rounded-2xl p-6 relative overflow-hidden flex flex-col items-center justify-center text-center min-h-[300px]"
+                            id="resultCard">
+                            <div id="resultInitial" class="opacity-50">
+                                <svg class="w-16 h-16 text-slate-600 mx-auto mb-4" fill="none" stroke="currentColor"
+                                    viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                        d="M13 10V3L4 14h7v7l9-11h-7z"></path>
+                                </svg>
+                                <p class="text-slate-400">Upload data to see maneuver inference</p>
+                            </div>
+                            <div id="resultLoading" class="hidden">
+                                <div
+                                    class="w-12 h-12 border-4 border-indigo-500 border-t-transparent rounded-full animate-spin mx-auto mb-4">
+                                </div>
+                                <p class="text-indigo-400 font-medium">Processing through Hybrid Flow...</p>
+                            </div>
+                            <div id="resultOutput" class="hidden w-full relative z-10 p-6 rounded-2xl">
+                                <h2 class="text-3xl font-bold text-white mb-2" id="predictionText">Normal_Driving</h2>
+                                <div class="inline-block px-4 py-1 rounded-full bg-slate-900/50 text-sm font-bold tracking-wider mb-6"
+                                    id="triggerText">Trigger: Normal AI</div>
+                                <div class="space-y-3 w-full text-left" id="probBars"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- ═══════════════════════════════════════════════════════════
+                     TAB 3 — SAFETY HEATMAP
+                     ═══════════════════════════════════════════════════════════ -->
+                <div id="panelHeatmap" class="hidden">
+                    <div class="mt-4">
+                        <div class="flex items-center justify-between mb-6 gap-4 flex-wrap">
+                            <div>
+                                <h3 class="text-2xl font-bold text-white flex items-center gap-3">
+                                    <svg class="w-7 h-7 text-rose-500" fill="none" stroke="currentColor"
+                                        viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                            d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z">
+                                        </path>
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                            d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                                    </svg>
+                                    Safety Violation Heatmap
+                                </h3>
+                                <p class="text-slate-400 text-sm mt-1">Visualizing geotagged behavior detections from your uploads</p>
+                            </div>
+                            <button onclick="loadHeatmap()"
+                                class="px-5 py-2 bg-slate-800 hover:bg-slate-700 text-slate-200 text-sm font-semibold rounded-xl border border-slate-700 transition flex items-center gap-2">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                        d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15">
+                                    </path>
+                                </svg>
+                                Refresh Data
+                            </button>
+                        </div>
+                        <div id="safetyMap"
+                            class="w-full h-[600px] rounded-2xl border border-slate-700/50 shadow-2xl relative z-10 overflow-hidden">
+                            <div class="absolute inset-0 bg-slate-900/80 backdrop-blur-sm flex items-center justify-center z-[1001]"
+                                id="mapPlaceholder">
+                                <div class="text-center px-4">
+                                    <div
+                                        class="w-10 h-10 border-4 border-indigo-500 border-t-transparent rounded-full animate-spin mx-auto mb-3">
+                                    </div>
+                                    <p class="text-slate-300 font-medium">Initializing Map Engine...</p>
+                                    <p class="text-slate-500 text-xs mt-1">Allow location access for accurate event placement.</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- ═══════════════════════════════════════════════════════════
+                     TAB 2 — CONTINUOUS ANALYSIS (Merged from continuous.html)
+                     ═══════════════════════════════════════════════════════════ -->
+                <div id="panelContinuous" class="hidden space-y-8">
+                    
+                    <!-- 1. Pipeline Diagram (Premium Steps) -->
+                    <div class="glass-panel p-8 relative overflow-hidden">
+                        <div class="absolute top-0 right-0 w-64 h-64 bg-indigo-500/5 blur-[100px] rounded-full"></div>
+                        <div class="relative z-10">
+                            <h3 class="text-white font-bold text-lg mb-6 flex items-center gap-2">
+                                <span class="w-1.5 h-6 bg-indigo-500 rounded-full"></span>
+                                Analysis Intelligence Pipeline
+                            </h3>
+                            <div class="grid grid-cols-1 md:grid-cols-4 gap-8">
+                                <div class="flex flex-col items-center text-center group">
+                                    <div class="step-bubble bg-indigo-600 text-white mb-4 group-hover:scale-110 transition-transform">1</div>
+                                    <h4 class="text-indigo-200 font-bold text-sm">Telemetry Ingest</h4>
+                                    <p class="text-indigo-400/60 text-[10px] mt-1 uppercase tracking-widest font-black">Continuous IMU</p>
+                                </div>
+                                <div class="flex flex-col items-center text-center group">
+                                    <div class="step-bubble bg-purple-600 text-white mb-4 group-hover:scale-110 transition-transform">2</div>
+                                    <h4 class="text-indigo-200 font-bold text-sm">Neural Smoothing</h4>
+                                    <p class="text-purple-400/60 text-[10px] mt-1 uppercase tracking-widest font-black">Kalman Fusion</p>
+                                </div>
+                                <div class="flex flex-col items-center text-center group">
+                                    <div class="step-bubble bg-violet-600 text-white mb-4 group-hover:scale-110 transition-transform">3</div>
+                                    <h4 class="text-indigo-200 font-bold text-sm">Temporal Window</h4>
+                                    <p class="text-violet-400/60 text-[10px] mt-1 uppercase tracking-widest font-black">20Hz Analysis</p>
+                                </div>
+                                <div class="flex flex-col items-center text-center group">
+                                    <div class="step-bubble ai-gradient-bg text-white mb-4 group-hover:scale-110 transition-transform">4</div>
+                                    <h4 class="text-indigo-200 font-bold text-sm">Hybrid Fusion</h4>
+                                    <p class="text-pink-400/60 text-[10px] mt-1 uppercase tracking-widest font-black">Alpha=0.6 Physics</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 2. Upload Zone (Hero Section) -->
+                    <div class="upload-zone p-12 text-center cursor-pointer group" id="dropZoneCont" 
+                         onclick="document.getElementById('fileInputCont').click()">
+                        <div id="uploadContentCont" class="transition-all duration-500">
+                            <div class="mb-6 relative inline-block">
+                                <div class="absolute inset-0 bg-indigo-500 blur-2xl opacity-20 group-hover:opacity-40 transition-opacity"></div>
+                                <svg class="w-20 h-20 text-indigo-400 relative z-10" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"></path>
+                                </svg>
+                            </div>
+                            <h2 class="text-2xl font-black text-white mb-2 tracking-tight">Ingest Sensor Telemetry</h2>
+                            <p class="text-slate-400 max-w-md mx-auto text-sm leading-relaxed">
+                                Upload your multi-channel IMU data for high-fidelity behavior analysis. 
+                                <span class="text-indigo-400 font-semibold">Max 100K samples per session.</span>
+                            </p>
+                            <div class="mt-8 inline-flex items-center gap-2 px-4 py-2 bg-white/5 rounded-full border border-white/10 text-xs text-slate-300">
+                                <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+                                AI Engine: Ready for Processing
+                            </div>
+                        </div>
+                        <div id="uploadProgressCont" class="hidden max-w-md mx-auto">
+                            <div class="w-full bg-slate-800/50 rounded-full h-1.5 mb-4 overflow-hidden">
+                                <div class="progress-fill h-full rounded-full" id="progressBarCont" style="width: 0%"></div>
+                            </div>
+                            <p class="text-indigo-400 font-bold text-lg animate-pulse" id="progressTextCont">Running Neural Analysis...</p>
+                        </div>
+                        <input type="file" id="fileInputCont" class="hidden" accept=".csv" onchange="handleContFileSelect(event)">
+                    </div>
+
+                    <!-- 3. Real-time Results Dashboard -->
+                    <div id="chartContainer" class="hidden space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-1000">
+                        
+                        <!-- Stats Overlays -->
+                        <div id="statsRow" class="grid grid-cols-2 md:grid-cols-4 gap-4">
+                            <div class="glass-panel p-6 group hover:translate-y-[-4px]">
+                                <p class="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500 mb-2">Total Samples</p>
+                                <p class="text-3xl font-black text-white stat-value" id="statRows">-</p>
+                            </div>
+                            <div class="glass-panel p-6 group hover:translate-y-[-4px] border-indigo-500/20">
+                                <p class="text-[10px] font-black uppercase tracking-[0.2em] text-indigo-500/60 mb-2">Temporal Windows</p>
+                                <p class="text-3xl font-black text-indigo-400 stat-value" id="statWindows">-</p>
+                            </div>
+                            <div class="glass-panel p-6 group hover:translate-y-[-4px] border-rose-500/20">
+                                <p class="text-[10px] font-black uppercase tracking-[0.2em] text-rose-500/60 mb-2">Threats Detected</p>
+                                <p class="text-3xl font-black text-rose-400 stat-value" id="statEvents">-</p>
+                            </div>
+                            <div class="glass-panel p-6 group hover:translate-y-[-4px] border-emerald-500/20">
+                                <p class="text-[10px] font-black uppercase tracking-[0.2em] text-emerald-500/60 mb-2">Safety Accuracy</p>
+                                <p class="text-3xl font-black text-emerald-400 stat-value" id="statAccuracy">-</p>
+                            </div>
+                        </div>
+
+                        <!-- Visualization Block -->
+                        <div class="glass-panel p-1 border-white/5">
+                            <div class="p-6 border-b border-white/5 flex items-center justify-between">
+                                <div class="flex items-center gap-3">
+                                    <div class="w-10 h-10 bg-indigo-500/10 rounded-xl flex items-center justify-center">
+                                        <svg class="w-6 h-6 text-indigo-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 12l3-3 3 3 4-4M8 21l4-4 4 4M3 4h18M4 4h16v12a1 1 0 01-1 1H5a1 1 0 01-1-1V4z"></path>
+                                        </svg>
+                                    </div>
+                                    <div>
+                                        <h3 class="text-white font-bold leading-none mb-1">High-Fidelity Telemetry</h3>
+                                        <p class="text-[10px] text-slate-500 uppercase tracking-widest">Real-time Sensor Fusion View</p>
+                                    </div>
+                                </div>
+                                <div class="flex items-center gap-3">
+                                    <div class="modern-legend"><span class="dot bg-blue-500"></span>Raw Accel</div>
+                                    <div class="modern-legend"><span class="dot bg-cyan-400"></span>Kalman</div>
+                                    <div class="modern-legend"><span class="dot bg-rose-500"></span>Threat Threshold</div>
+                                </div>
+                            </div>
+                            <div id="mainChart" style="height: 500px;"></div>
+                        </div>
+
+                        <!-- Secondary Insights -->
+                        <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                            <div class="col-span-1 md:col-span-2 glass-panel p-6">
+                                <h3 class="text-white font-bold text-sm mb-4 flex items-center gap-2">
+                                    <svg class="w-4 h-4 text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                                    </svg>
+                                    Prediction Timeline Alignment
+                                </h3>
+                                <div id="comparisonChart" style="height: 200px;"></div>
+                            </div>
+                            <div class="glass-panel p-6">
+                                <h3 class="text-white font-bold text-sm mb-4">Risk Distribution</h3>
+                                <div id="pieChart" style="height: 200px;"></div>
+                                <div class="mt-4 space-y-2">
+                                    <div class="flex items-center justify-between text-[10px] text-slate-400">
+                                        <span>Anomaly Density</span>
+                                        <span class="text-indigo-400 font-bold" id="anomalyDensity">-</span>
+                                    </div>
+                                    <div class="w-full bg-white/5 h-1 rounded-full overflow-hidden">
+                                        <div class="bg-indigo-500 h-full" style="width: 45%" id="anomalyBar"></div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+        </main>
+    </div>
+
+    <script src="../js/api.js"></script>
+    <script>
+        const userName = localStorage.getItem('userName') || 'User';
+        document.getElementById('userName').textContent = userName;
+
+        let map = null;
+        let heatLayer = null;
+        let markerLayer = null;
+        let currentPos = { lat: 6.9271, lon: 79.8612 };
+
+        function setMapPlaceholder(message) {
+            const placeholder = document.getElementById('mapPlaceholder');
+            if (!placeholder) return;
+            const text = placeholder.querySelector('p');
+            if (text && message) {
+                text.textContent = message;
+            }
+            placeholder.style.display = 'flex';
+        }
+
+        function hideMapPlaceholder() {
+            const placeholder = document.getElementById('mapPlaceholder');
+            if (placeholder) {
+                placeholder.style.display = 'none';
+            }
+        }
+
+        function initGeolocation() {
+            if (!('geolocation' in navigator)) {
+                initMap(currentPos.lat, currentPos.lon);
+                return;
+            }
+
+            navigator.geolocation.getCurrentPosition(
+                (pos) => {
+                    currentPos = { lat: pos.coords.latitude, lon: pos.coords.longitude };
+                    initMap(currentPos.lat, currentPos.lon);
+                },
+                () => {
+                    initMap(currentPos.lat, currentPos.lon);
+                },
+                { enableHighAccuracy: true, maximumAge: 30000, timeout: 10000 }
+            );
+        }
+
+        function initMap(lat, lon) {
+            currentPos = { lat, lon };
+
+            if (map) {
+                map.setView([lat, lon], map.getZoom() || 13);
+                hideMapPlaceholder();
+                return;
+            }
+
+            map = L.map('safetyMap').setView([lat, lon], 13);
+            L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+                attribution: '&copy; OpenStreetMap &copy; CARTO'
+            }).addTo(map);
+
+            markerLayer = L.layerGroup().addTo(map);
+            hideMapPlaceholder();
+            loadHeatmap();
+        }
+
+        async function loadHeatmap() {
+            if (!map) {
+                return;
+            }
+
+            try {
+                const res = await fetch('http://localhost:5000/api/behavior/history');
+                const data = await res.json();
+
+                if (!data.ok) {
+                    throw new Error(data.error || 'Unable to load history');
+                }
+
+                const events = Array.isArray(data.events) ? data.events.filter((event) => Number.isFinite(event.lat) && Number.isFinite(event.lon)) : [];
+                const points = events.map((event) => [event.lat, event.lon, Math.max(0.2, Number(event.score || 0.2) * 5)]);
+
+                if (heatLayer) {
+                    map.removeLayer(heatLayer);
+                    heatLayer = null;
+                }
+
+                if (markerLayer) {
+                    markerLayer.clearLayers();
+                } else {
+                    markerLayer = L.layerGroup().addTo(map);
+                }
+
+                if (points.length) {
+                    heatLayer = L.heatLayer(points, {
+                        radius: 25,
+                        blur: 15,
+                        maxZoom: 17,
+                        gradient: { 0.4: 'blue', 0.6: 'cyan', 0.7: 'lime', 0.8: 'yellow', 1.0: 'red' }
+                    }).addTo(map);
+                }
+
+                events.forEach((event) => {
+                    let color = '#10b981';
+                    const type = (event.behavior || '').toLowerCase();
+
+                    if (type.includes('brake')) color = '#ef4444';
+                    else if (type.includes('turn') || type.includes('lane')) color = '#f59e0b';
+                    else if (type.includes('acceleration')) color = '#facc15';
+
+                    const meta = event.meta || {};
+                    const popupContent = `
+                        <div class="text-slate-900 p-1 min-w-[150px]">
+                            <p class="font-bold text-sm mb-1 text-slate-800 border-b border-slate-200 pb-1">
+                                ${(event.behavior || 'Unknown').replace(/_/g, ' ')}
+                            </p>
+                            <div class="space-y-1 my-2">
+                                <p class="text-[10px] text-slate-500 flex justify-between">
+                                    <span>Trigger:</span> <b class="text-slate-700">${meta.override || meta.trigger || 'AI'}</b>
+                                </p>
+                                <p class="text-[10px] text-slate-500 flex justify-between">
+                                    <span>Confidence:</span> <b class="text-slate-700">${(Number(event.score || 0) * 100).toFixed(1)}%</b>
+                                </p>
+                                ${meta.speed !== undefined ? `
+                                <p class="text-[10px] text-slate-500 flex justify-between">
+                                    <span>Speed:</span> <b class="text-slate-700">${Number(meta.speed).toFixed(1)} km/h</b>
+                                </p>` : ''}
+                                ${meta.max_ax !== undefined && meta.max_ay !== undefined ? `
+                                <p class="text-[10px] text-slate-500 flex justify-between">
+                                    <span>G-Force (X/Y):</span> <b class="text-slate-700">${Number(meta.max_ax).toFixed(2)} / ${Number(meta.max_ay).toFixed(2)}</b>
+                                </p>` : ''}
+                            </div>
+                            <p class="text-[9px] opacity-60 border-t border-slate-100 pt-1 mt-1">${String(event.timestamp || '').replace('T', ' ').split('.')[0]}</p>
+                        </div>
+                    `;
+
+                    L.circleMarker([event.lat, event.lon], {
+                        radius: 6,
+                        fillColor: color,
+                        color: '#fff',
+                        weight: 1,
+                        opacity: 1,
+                        fillOpacity: 0.8
+                    }).bindPopup(popupContent).addTo(markerLayer);
+                });
+
+                if (events.length) {
+                    hideMapPlaceholder();
+                } else {
+                    setMapPlaceholder('No geotagged behavior events yet. Upload data after allowing location access.');
+                }
+            } catch (err) {
+                console.error('Heatmap error:', err);
+                setMapPlaceholder('Unable to load heatmap data from the backend.');
+            }
+        }
+
+        window.addEventListener('load', initGeolocation);
+
+        // ══════════════════════════════════════════════════════════════════
+        //  TAB SWITCHING
+        // ══════════════════════════════════════════════════════════════════
+        function switchTab(tab) {
+            document.getElementById('tabSingle').classList.toggle('active', tab === 'single');
+            document.getElementById('tabSingle').classList.toggle('text-slate-300', tab === 'single');
+            document.getElementById('tabSingle').classList.toggle('text-slate-500', tab !== 'single');
+
+            document.getElementById('tabContinuous').classList.toggle('active', tab === 'continuous');
+            document.getElementById('tabContinuous').classList.toggle('text-slate-300', tab === 'continuous');
+            document.getElementById('tabContinuous').classList.toggle('text-slate-500', tab !== 'continuous');
+
+            document.getElementById('tabHeatmap').classList.toggle('active', tab === 'heatmap');
+            document.getElementById('tabHeatmap').classList.toggle('text-slate-300', tab === 'heatmap');
+            document.getElementById('tabHeatmap').classList.toggle('text-slate-500', tab !== 'heatmap');
+
+            document.getElementById('panelSingle').classList.toggle('hidden', tab !== 'single');
+            document.getElementById('panelContinuous').classList.toggle('hidden', tab !== 'continuous');
+            document.getElementById('panelHeatmap').classList.toggle('hidden', tab !== 'heatmap');
+
+            if (tab === 'heatmap') {
+                setTimeout(() => {
+                    if (map) {
+                        map.invalidateSize();
+                        loadHeatmap();
+                    } else {
+                        initGeolocation();
+                    }
+                }, 100);
+            }
+        }
+
+        // ══════════════════════════════════════════════════════════════════
+        //  TAB 1: Single Window Upload (original logic)
+        // ══════════════════════════════════════════════════════════════════
+        let selectedFileSingle = null;
+
+        function handleSingleFileSelect(e) {
+            const file = e.target.files[0];
+            if (!file) return;
+            selectedFileSingle = file;
+            document.getElementById('fileNameSingle').textContent = file.name;
+            document.getElementById('fileInfoSingle').style.display = 'flex';
+        }
+
+        async function uploadSingleCSV() {
+            if (!selectedFileSingle) return;
+            document.getElementById('uploadBtnSingle').disabled = true;
+            document.getElementById('resultInitial').classList.add('hidden');
+            document.getElementById('resultOutput').classList.add('hidden');
+            document.getElementById('resultLoading').classList.remove('hidden');
+            document.getElementById('resultCard').className = "bg-slate-800 border border-slate-700 rounded-2xl p-6 relative overflow-hidden flex flex-col items-center justify-center text-center min-h-[300px] transition-all duration-500";
+
+            const formData = new FormData();
+            formData.append("file", selectedFileSingle);
+            formData.append("lat", currentPos.lat);
+            formData.append("lon", currentPos.lon);
+
+            try {
+                const res = await fetch("http://localhost:5000/api/behavior/upload_csv", { method: "POST", body: formData });
+                const data = await res.json();
+                document.getElementById('resultLoading').classList.add('hidden');
+                if (data.error) { alert("Error: " + data.error); document.getElementById('resultInitial').classList.remove('hidden'); return; }
+                showSingleResult(data);
+                setTimeout(() => loadHeatmap(), 500);
+            } catch (err) {
+                console.error(err);
+                alert("Failed to connect to backend");
+                document.getElementById('resultLoading').classList.add('hidden');
+                document.getElementById('resultInitial').classList.remove('hidden');
+            } finally {
+                document.getElementById('uploadBtnSingle').disabled = false;
+                document.getElementById('fileInputSingle').value = '';
+                selectedFileSingle = null;
+                document.getElementById('fileInfoSingle').style.display = 'none';
+            }
+        }
+
+        function showSingleResult(data) {
+            const resultOutput = document.getElementById('resultOutput');
+            const resultCard = document.getElementById('resultCard');
+            const predText = document.getElementById('predictionText');
+            const triggerText = document.getElementById('triggerText');
+            const probBars = document.getElementById('probBars');
+
+            resultOutput.classList.remove('hidden');
+            const pred = data.prediction;
+            predText.textContent = pred.replace(/_/g, ' ').toUpperCase();
+            triggerText.textContent = "Trigger: " + (data.details.override || data.details.trigger || "AI Inference");
+
+            resultCard.className = "bg-slate-800 border-2 rounded-2xl relative overflow-hidden flex flex-col items-center justify-center text-center min-h-[300px] transition-all duration-500";
+            triggerText.className = "inline-block px-4 py-1 rounded-full text-sm font-bold tracking-wider mb-6";
+
+            if (pred.includes("Brake") || pred.includes("Crash") || pred.includes("Sharp")) {
+                resultCard.classList.add("border-rose-500", "shadow-[0_0_40px_rgba(244,63,94,0.3)]");
+                resultOutput.classList.add("bg-rose-500/10");
+                predText.className = "text-4xl font-extrabold text-rose-500 mb-2 animate-pulse";
+                triggerText.classList.add("bg-rose-500/20", "text-rose-400");
+            } else if (pred.includes("Acceleration") || pred.includes("Lane")) {
+                resultCard.classList.add("border-amber-500");
+                resultOutput.classList.add("bg-amber-500/10");
+                predText.className = "text-3xl font-bold text-amber-500 mb-2";
+                triggerText.classList.add("bg-amber-500/20", "text-amber-400");
+            } else {
+                resultCard.classList.add("border-emerald-500");
+                predText.className = "text-3xl font-bold text-emerald-400 mb-2";
+                triggerText.classList.add("bg-emerald-500/20", "text-emerald-400");
+            }
+
+            probBars.innerHTML = '';
+            if (data.details.probs && data.details.probs.length === 5) {
+                const labels = ["Brake", "Normal", "Turn", "Accel", "Lane Change"];
+                data.details.probs.forEach((prob, i) => {
+                    const p = Math.round(prob * 100);
+                    probBars.innerHTML += `<div class="flex items-center gap-3 text-sm"><span class="w-24 text-right text-slate-400 font-medium">${labels[i]}</span><div class="flex-1 bg-slate-900 rounded-full h-2 overflow-hidden"><div class="bg-indigo-500 h-full rounded-full" style="width: ${p}%"></div></div><span class="w-10 text-slate-300">${p}%</span></div>`;
+                });
+            } else {
+                probBars.innerHTML = `<div class="p-4 bg-indigo-500/10 border border-indigo-500/20 rounded-xl text-center"><p class="text-sm text-indigo-400 font-bold mb-1">⚡ Hybrid Fusion Engaged</p><p class="text-xs text-slate-400 font-medium">Deterministic physics limits triggered for immediate safety response. Neural network inference bypassed.</p></div>`;
+            }
+        }
+
+        // ══════════════════════════════════════════════════════════════════
+        //  TAB 2: Continuous Analysis
+        // ══════════════════════════════════════════════════════════════════
+        const COLOR_MAP = {
+            'Harsh_Brake': { fill: 'rgba(239,68,68,0.15)', line: '#ef4444' },
+            'Sharp_Turn': { fill: 'rgba(245,158,11,0.15)', line: '#f59e0b' },
+            'Sudden_Acceleration': { fill: 'rgba(168,85,247,0.15)', line: '#a855f7' },
+            'Sudden_Lane_Change': { fill: 'rgba(236,72,153,0.15)', line: '#ec4899' },
+            'Normal_Driving': { fill: 'rgba(16,185,129,0.04)', line: '#10b981' }
+        };
+        const LABEL_NUM = { 'Harsh_Brake': 0, 'Normal_Driving': 1, 'Sharp_Turn': 2, 'Sudden_Acceleration': 3, 'Sudden_Lane_Change': 4, 'Unknown': 1 };
+
+        let selectedFileCont = null;
+
+        // Drag & Drop for continuous zone
+        const dzCont = document.getElementById('dropZoneCont');
+        dzCont.addEventListener('dragover', (e) => { e.preventDefault(); dzCont.classList.add('dragover'); });
+        dzCont.addEventListener('dragleave', () => dzCont.classList.remove('dragover'));
+        dzCont.addEventListener('drop', (e) => { e.preventDefault(); dzCont.classList.remove('dragover'); if (e.dataTransfer.files.length > 0) { selectedFileCont = e.dataTransfer.files[0]; processContFile(); } });
+
+        function handleContFileSelect(e) { selectedFileCont = e.target.files[0]; if (selectedFileCont) processContFile(); }
+
+        async function processContFile() {
+            if (!selectedFileCont) return;
+            document.getElementById('uploadContentCont').classList.add('hidden');
+            document.getElementById('uploadProgressCont').classList.remove('hidden');
+            dzCont.classList.add('processing');
+
+            const pb = document.getElementById('progressBarCont');
+            const pt = document.getElementById('progressTextCont');
+
+            pb.style.width = '10%';
+            pt.textContent = `Uploading ${selectedFileCont.name} (${(selectedFileCont.size / 1024 / 1024).toFixed(1)} MB)...`;
+
+            const formData = new FormData();
+            formData.append("file", selectedFileCont);
+            formData.append("lat", currentPos.lat);
+            formData.append("lon", currentPos.lon);
+
+            try {
+                pb.style.width = '30%'; pt.textContent = 'Processing through Kalman Filter + Sliding Window...';
+                const res = await fetch("http://localhost:5000/api/behavior/upload_continuous", { method: "POST", body: formData });
+                pb.style.width = '80%'; pt.textContent = 'Rendering visualizations...';
+                const data = await res.json();
+                if (data.error) { alert("Error: " + data.error); resetContUpload(); return; }
+                pb.style.width = '100%'; pt.textContent = 'Complete!';
+                setTimeout(() => loadHeatmap(), 500);
+                setTimeout(() => { renderContResults(data); dzCont.classList.remove('processing'); }, 500);
+            } catch (err) {
+                console.error(err); alert("Failed to process: " + err.message); resetContUpload();
+            }
+        }
+
+        function resetContUpload() {
+            document.getElementById('uploadContentCont').classList.remove('hidden');
+            document.getElementById('uploadProgressCont').classList.add('hidden');
+            document.getElementById('progressBarCont').style.width = '0%';
+            dzCont.classList.remove('processing');
+            document.getElementById('fileInputCont').value = '';
+            selectedFileCont = null;
+        }
+
+        function renderContResults(data) {
+            document.getElementById('uploadProgressCont').classList.add('hidden');
+            document.getElementById('uploadContentCont').classList.remove('hidden');
+            document.getElementById('chartContainer').classList.remove('hidden');
+
+            const windows = data.windows, chart = data.chart;
+
+            // Stats
+            document.getElementById('statRows').textContent = data.total_rows.toLocaleString();
+            document.getElementById('statWindows').textContent = data.total_windows.toLocaleString();
+            
+            const eventCount = windows.filter(w => w.predicted_label !== 'Normal_Driving').length;
+            document.getElementById('statEvents').textContent = eventCount.toLocaleString();
+            
+            // Accuracy estimate (Simplified for UI)
+            const correct = windows.filter(w => w.actual_label === w.predicted_label).length;
+            const accuracy = (correct / windows.length * 100).toFixed(1);
+            document.getElementById('statAccuracy').textContent = accuracy + "%";
+
+            // Anomaly Density (New)
+            const density = ((eventCount / windows.length) * 100).toFixed(1);
+            document.getElementById('anomalyDensity').textContent = density + "%";
+            document.getElementById('anomalyBar').style.width = density + "%";
+
+            // Main Telemetry Chart
+            const traces = [
+                {
+                    x: chart.timestamps,
+                    y: chart.accelX_raw,
+                    name: 'Raw Accel X',
+                    mode: 'lines',
+                    line: { color: 'rgba(59, 130, 246, 0.4)', width: 1 }
+                },
+                {
+                    x: chart.timestamps,
+                    y: chart.accelX_smooth,
+                    name: 'Smoothed',
+                    mode: 'lines',
+                    line: { color: '#22d3ee', width: 2.5 }
+                },
+                {
+                    x: [chart.timestamps[0], chart.timestamps[chart.timestamps.length - 1]],
+                    y: [-3.0, -3.0],
+                    name: 'Safety Threshold',
+                    mode: 'lines',
+                    line: { color: '#ef4444', width: 2, dash: 'dot' }
+                }
+            ];
+
+            const shapes = [];
+            const tsArr = chart.timestamps;
+            windows.forEach(w => {
+                if (w.predicted_label === 'Normal_Driving') return;
+                const c = COLOR_MAP[w.predicted_label] || COLOR_MAP['Normal_Driving'];
+                const step = Math.max(1, data.total_rows / tsArr.length);
+                const x0 = Math.floor(w.start_idx / step);
+                const x1 = Math.min(Math.floor(w.end_idx / step), tsArr.length - 1);
+                
+                if (x0 < tsArr.length && x1 < tsArr.length) {
+                    shapes.push({
+                        type: 'rect', xref: 'x', yref: 'paper',
+                        x0: tsArr[x0], x1: tsArr[x1],
+                        y0: 0, y1: 1,
+                        fillcolor: c.fill,
+                        line: { width: 0 },
+                        layer: 'below'
+                    });
+                }
+            });
+
+            Plotly.newPlot('mainChart', traces, {
+                paper_bgcolor: 'rgba(0,0,0,0)',
+                plot_bgcolor: 'rgba(15,23,42,0.6)',
+                margin: { t: 30, b: 50, l: 60, r: 20 },
+                font: { color: '#94a3b8', family: 'Inter' },
+                xaxis: { gridcolor: 'rgba(255,255,255,0.03)', zeroline: false },
+                yaxis: { gridcolor: 'rgba(255,255,255,0.03)', zeroline: false },
+                shapes: shapes,
+                showlegend: false,
+                hovermode: 'x unified'
+            }, { responsive: true });
+
+            // Comparison Timeline
+            const compX = [], aY = [], pY = [];
+            windows.forEach(w => {
+                compX.push(w.timestamp);
+                aY.push(LABEL_NUM[w.actual_label] ?? 1);
+                pY.push(LABEL_NUM[w.predicted_label] ?? 1);
+            });
+
+            Plotly.newPlot('comparisonChart', [
+                {
+                    x: compX, y: aY, name: 'Actual',
+                    type: 'scatter', mode: 'lines',
+                    fill: 'tozeroy',
+                    line: { color: 'rgba(148, 163, 184, 0.2)', width: 0 }
+                },
+                {
+                    x: compX, y: pY, name: 'Predicted',
+                    mode: 'lines',
+                    line: { color: '#a855f7', width: 2 }
+                }
+            ], {
+                paper_bgcolor: 'rgba(0,0,0,0)',
+                plot_bgcolor: 'rgba(15,23,42,0.4)',
+                margin: { t: 10, b: 30, l: 60, r: 20 },
+                font: { color: '#94a3b8', size: 10 },
+                xaxis: { gridcolor: 'rgba(255,255,255,0.02)', zeroline: false },
+                yaxis: { 
+                    gridcolor: 'rgba(255,255,255,0.02)', 
+                    zeroline: false, 
+                    tickvals: [0, 1, 2, 3, 4],
+                    ticktext: ['Brake', 'Norm', 'Turn', 'Acc', 'Lane'],
+                    tickfont: { size: 9 }
+                },
+                showlegend: false,
+                height: 200
+            }, { responsive: true, displayModeBar: false });
+
+            // Risk Distribution Pie
+            const counts = {};
+            windows.forEach(w => {
+                counts[w.predicted_label] = (counts[w.predicted_label] || 0) + 1;
+            });
+
+            Plotly.newPlot('pieChart', [{
+                values: Object.values(counts),
+                labels: Object.keys(counts).map(l => l.replace(/_/g, ' ')),
+                type: 'pie',
+                hole: 0.7,
+                marker: { 
+                    colors: Object.keys(counts).map(l => (COLOR_MAP[l] || COLOR_MAP['Normal_Driving']).line),
+                    line: { color: '#0f172a', width: 2 }
+                }
+            }], {
+                paper_bgcolor: 'rgba(0,0,0,0)',
+                margin: { t: 0, b: 0, l: 0, r: 0 },
+                font: { color: '#94a3b8', size: 10 },
+                showlegend: false,
+                height: 200
+            }, { responsive: true, displayModeBar: false });
+        }
+    </script>
+</body>
+
+</html>

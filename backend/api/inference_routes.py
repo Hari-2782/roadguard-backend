@@ -1,0 +1,78 @@
+from flask import Blueprint, jsonify, request
+import time
+import os
+import torch
+import numpy as np
+
+# This blueprint handles REST requests for model inference
+inference_bp = Blueprint('inference', __name__, url_prefix='/api/inference')
+
+# Device discovery
+DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
+
+@inference_bp.route('/health', methods=['GET'])
+def health():
+    """Returns the health and status of all ML models"""
+    from api.api_server import hazard_model, pothole_model, sign_model, lane_model, road_model, MODELS_LOADED
+    
+    status = {
+        "status": "healthy",
+        "device": DEVICE,
+        "models_loaded": MODELS_LOADED,
+        "models": {
+            "hazard": {"health": "ready" if hazard_model else "failed"},
+            "lane_detector": {"health": "ready" if lane_model else "failed"},
+            "pothole": {"health": "ready" if pothole_model else "failed"},
+            "road_segmenter": {"health": "ready" if road_model else "failed"},
+            "sign_detector": {"health": "ready" if sign_model else "failed"}
+        },
+        "cache": {
+            "size": 0,
+            "max_size": 5,
+            "hits": 0,
+            "misses": 0,
+            "hit_rate": "0.0%",
+            "total_requests": 0
+        }
+    }
+    return jsonify(status)
+
+@inference_bp.route('/models', methods=['GET'])
+def list_models():
+    """List all available ML models"""
+    models = [
+        {"id": "hazard", "name": "Hazard Detector", "type": "YOLOv8"},
+        {"id": "lane", "name": "Lane Detector", "type": "PyTorch-DeepLabV3"},
+        {"id": "pothole", "name": "Pothole Detector", "type": "YOLOv8"},
+        {"id": "road", "name": "Road Segmenter", "type": "PyTorch-DeepLabV3"},
+        {"id": "sign", "name": "Sign Detector", "type": "YOLOv8"}
+    ]
+    return jsonify(models)
+
+@inference_bp.route('/hazard', methods=['POST'])
+def infer_hazard():
+    return jsonify({"error": "Endpoint not fully implemented in reconstruction"}), 501
+
+@inference_bp.route('/lane', methods=['POST'])
+def infer_lane():
+    return jsonify({"error": "Endpoint not fully implemented in reconstruction"}), 501
+
+@inference_bp.route('/pothole', methods=['POST'])
+def infer_pothole():
+    return jsonify({"error": "Endpoint not fully implemented in reconstruction"}), 501
+
+@inference_bp.route('/road', methods=['POST'])
+def infer_road():
+    return jsonify({"error": "Endpoint not fully implemented in reconstruction"}), 501
+
+@inference_bp.route('/sign', methods=['POST'])
+def infer_sign():
+    return jsonify({"error": "Endpoint not fully implemented in reconstruction"}), 501
+
+@inference_bp.route('/batch', methods=['POST'])
+def infer_batch():
+    return jsonify({"error": "Endpoint not fully implemented in reconstruction"}), 501
+
+@inference_bp.route('/model/<name>/version', methods=['POST'])
+def model_version(name):
+    return jsonify({"model": name, "version": "1.0.0", "status": "active"})

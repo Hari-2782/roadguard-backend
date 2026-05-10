@@ -1,0 +1,631 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Calibration - Admin - RoadGuard</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="../css/styles.css">
+    <script src="../js/theme.js"></script>
+</head>
+
+<body class="bg-slate-900 min-h-screen">
+
+    <div class="flex">
+        <!-- Admin Sidebar -->
+        <aside class="sidebar w-64 min-h-screen p-4 fixed left-0 top-0">
+            <div class="flex items-center gap-3 mb-8 px-2">
+                <div class="w-10 h-10 bg-rose-600 rounded-xl flex items-center justify-center">
+                    <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z">
+                        </path>
+                    </svg>
+                </div>
+                <div>
+                    <h2 class="font-bold text-white">RoadGuard</h2>
+                    <p class="text-xs text-rose-400">Admin Portal</p>
+                </div>
+            </div>
+
+            <nav class="space-y-1">
+                <a href="dashboard.html" class="sidebar-link">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6">
+                        </path>
+                    </svg>
+                    <span>Dashboard</span>
+                </a>
+                <a href="users.html" class="sidebar-link">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z">
+                        </path>
+                    </svg>
+                    <span>Users</span>
+                </a>
+                <a href="vehicles.html" class="sidebar-link">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M9 17a2 2 0 11-4 0 2 2 0 014 0zM19 17a2 2 0 11-4 0 2 2 0 014 0z"></path>
+                    </svg>
+                    <span>Vehicles</span>
+                </a>
+                <a href="calibration.html" class="sidebar-link active">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z">
+                        </path>
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                    </svg>
+                    <span>Calibration</span>
+                </a>
+            </nav>
+
+            <div class="absolute bottom-4 left-4 right-4">
+                <button onclick="API.logout()" class="w-full btn btn-secondary text-sm">Logout</button>
+            </div>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="ml-64 flex-1 p-6">
+            <div class="max-w-4xl mx-auto">
+                <div class="mb-8">
+                    <h1 class="text-2xl font-bold text-white">Speed Calibration</h1>
+                    <p class="text-slate-400 mt-1">Calculate kmh_per_pixel for accurate speed measurement</p>
+                </div>
+
+                <!-- Vehicle Selection -->
+                <div class="glass-card rounded-2xl p-6 mb-6">
+                    <h2 class="font-semibold text-white mb-4">1. Select Vehicle</h2>
+                    <select id="vehicleSelect" class="form-input">
+                        <option value="">-- Select a vehicle --</option>
+                    </select>
+                    <div id="currentCalib" class="mt-3 text-sm text-slate-400 hidden">
+                        Current calibration: <span id="calibValue" class="text-emerald-400 font-mono">-</span>
+                    </div>
+                </div>
+
+                <!-- Calibration Method -->
+                <div class="glass-card rounded-2xl p-6 mb-6">
+                    <h2 class="font-semibold text-white mb-4">2. Choose Calibration Method</h2>
+
+                    <div class="grid md:grid-cols-3 gap-4">
+                        <!-- Live Video Capture -->
+                        <div class="border border-slate-700 rounded-xl p-4 hover:border-amber-500/50 transition cursor-pointer"
+                            onclick="showMethod('live')">
+                            <div class="flex items-center gap-3 mb-2">
+                                <div class="w-10 h-10 bg-amber-600/20 rounded-xl flex items-center justify-center">
+                                    <svg class="w-5 h-5 text-amber-400" fill="none" stroke="currentColor"
+                                        viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                            d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z">
+                                        </path>
+                                    </svg>
+                                </div>
+                                <div>
+                                    <h3 class="font-medium text-white">Live Capture</h3>
+                                    <p class="text-xs text-slate-400">Record from camera</p>
+                                </div>
+                            </div>
+                            <p class="text-xs text-amber-400">⚡ Easiest</p>
+                        </div>
+
+                        <!-- Video Upload -->
+                        <div class="border border-slate-700 rounded-xl p-4 hover:border-emerald-500/50 transition cursor-pointer"
+                            onclick="showMethod('upload')">
+                            <div class="flex items-center gap-3 mb-2">
+                                <div class="w-10 h-10 bg-emerald-600/20 rounded-xl flex items-center justify-center">
+                                    <svg class="w-5 h-5 text-emerald-400" fill="none" stroke="currentColor"
+                                        viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                            d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12">
+                                        </path>
+                                    </svg>
+                                </div>
+                                <div>
+                                    <h3 class="font-medium text-white">Upload Videos</h3>
+                                    <p class="text-xs text-slate-400">Upload 30 & 60 kmph</p>
+                                </div>
+                            </div>
+                            <p class="text-xs text-emerald-400">✓ Recommended</p>
+                        </div>
+
+                        <!-- Manual Entry -->
+                        <div class="border border-slate-700 rounded-xl p-4 hover:border-indigo-500/50 transition cursor-pointer"
+                            onclick="showMethod('manual')">
+                            <div class="flex items-center gap-3 mb-2">
+                                <div class="w-10 h-10 bg-indigo-600/20 rounded-xl flex items-center justify-center">
+                                    <svg class="w-5 h-5 text-indigo-400" fill="none" stroke="currentColor"
+                                        viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                            d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z">
+                                        </path>
+                                    </svg>
+                                </div>
+                                <div>
+                                    <h3 class="font-medium text-white">Manual Entry</h3>
+                                    <p class="text-xs text-slate-400">Enter known value</p>
+                                </div>
+                            </div>
+                            <p class="text-xs text-slate-500">For advanced users</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Live Capture Panel -->
+                <div id="livePanel" class="glass-card rounded-2xl p-6 mb-6 hidden">
+                    <h2 class="font-semibold text-white mb-4">
+                        <svg class="w-5 h-5 inline mr-2 text-amber-400" fill="none" stroke="currentColor"
+                            viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z">
+                            </path>
+                        </svg>
+                        Live Video Calibration
+                    </h2>
+
+                    <!-- Camera Preview -->
+                    <div class="bg-black rounded-xl overflow-hidden mb-4 aspect-video relative">
+                        <video id="cameraPreview" autoplay muted class="w-full h-full object-cover"></video>
+                        <div id="recordingIndicator" class="absolute top-4 left-4 hidden">
+                            <span class="flex items-center gap-2 bg-red-600 text-white px-3 py-1 rounded-full text-sm">
+                                <span class="w-2 h-2 bg-white rounded-full animate-pulse"></span>
+                                <span id="recordingTimer">Recording: 0s</span>
+                            </span>
+                        </div>
+                        <div id="cameraPlaceholder"
+                            class="absolute inset-0 flex items-center justify-center bg-slate-800">
+                            <p class="text-slate-400">Camera preview will appear here</p>
+                        </div>
+                    </div>
+
+                    <!-- Instructions -->
+                    <div class="bg-slate-800/50 rounded-xl p-4 mb-4">
+                        <h3 class="text-sm font-medium text-white mb-2">Instructions:</h3>
+                        <ol class="text-sm text-slate-400 list-decimal ml-5 space-y-1">
+                            <li>Click "Start Camera" to access your device camera</li>
+                            <li>Drive at <strong class="text-amber-400">30 km/h</strong> and click "Record 30 km/h" (10
+                                sec)</li>
+                            <li>Drive at <strong class="text-amber-400">60 km/h</strong> and click "Record 60 km/h" (10
+                                sec)</li>
+                            <li>Click "Calculate" to auto-calibrate</li>
+                        </ol>
+                    </div>
+
+                    <!-- Controls -->
+                    <div class="space-y-4">
+                        <button id="startCameraBtn" onclick="startCamera()" class="btn btn-secondary w-full">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z">
+                                </path>
+                            </svg>
+                            Start Camera
+                        </button>
+
+                        <div id="recordButtons" class="grid grid-cols-2 gap-4 hidden">
+                            <button id="record30Btn" onclick="startRecording(30)" class="btn btn-secondary">
+                                <span class="w-3 h-3 bg-red-500 rounded-full"></span>
+                                Record 30 km/h
+                            </button>
+                            <button id="record60Btn" onclick="startRecording(60)" class="btn btn-secondary" disabled>
+                                <span class="w-3 h-3 bg-red-500 rounded-full"></span>
+                                Record 60 km/h
+                            </button>
+                        </div>
+
+                        <div class="flex gap-4">
+                            <div class="flex-1 text-center p-3 rounded-xl border border-slate-700">
+                                <p class="text-xs text-slate-400">30 km/h Recording</p>
+                                <p class="text-lg font-medium" id="status30">⏳ Not recorded</p>
+                            </div>
+                            <div class="flex-1 text-center p-3 rounded-xl border border-slate-700">
+                                <p class="text-xs text-slate-400">60 km/h Recording</p>
+                                <p class="text-lg font-medium" id="status60">⏳ Not recorded</p>
+                            </div>
+                        </div>
+
+                        <button id="processLiveBtn" onclick="processLiveRecordings()"
+                            class="btn btn-primary w-full hidden">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7">
+                                </path>
+                            </svg>
+                            Calculate Calibration
+                        </button>
+                    </div>
+
+                    <div id="liveProgress" class="hidden mt-4">
+                        <div class="flex items-center gap-3">
+                            <span class="spinner"></span>
+                            <span class="text-slate-300">Processing recordings... This may take a minute.</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Video Upload Panel -->
+                <div id="uploadPanel" class="glass-card rounded-2xl p-6 mb-6 hidden">
+                    <h2 class="font-semibold text-white mb-4">
+                        <svg class="w-5 h-5 inline mr-2 text-emerald-400" fill="none" stroke="currentColor"
+                            viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12">
+                            </path>
+                        </svg>
+                        Upload Calibration Videos
+                    </h2>
+
+                    <div class="bg-slate-800/50 rounded-xl p-4 mb-4">
+                        <p class="text-sm text-slate-300 mb-2">⚠️ <strong>Important:</strong></p>
+                        <ul class="text-sm text-slate-400 list-disc ml-5 space-y-1">
+                            <li>Drive at <strong class="text-white">constant 30 km/h</strong> for ~10 seconds</li>
+                            <li>Drive at <strong class="text-white">constant 60 km/h</strong> for ~10 seconds</li>
+                        </ul>
+                    </div>
+
+                    <form id="uploadForm" class="space-y-4">
+                        <div>
+                            <label class="form-label">30 km/h Video</label>
+                            <input type="file" id="video30" accept="video/*" class="form-input" required>
+                        </div>
+                        <div>
+                            <label class="form-label">60 km/h Video</label>
+                            <input type="file" id="video60" accept="video/*" class="form-input" required>
+                        </div>
+                        <button type="submit" id="uploadBtn" class="btn btn-primary w-full">
+                            Start Auto-Calibration
+                        </button>
+                    </form>
+
+                    <div id="uploadProgress" class="hidden mt-4">
+                        <div class="flex items-center gap-3">
+                            <span class="spinner"></span>
+                            <span class="text-slate-300">Processing videos...</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Manual Entry Panel -->
+                <div id="manualPanel" class="glass-card rounded-2xl p-6 mb-6 hidden">
+                    <h2 class="font-semibold text-white mb-4">Enter Calibration Value</h2>
+                    <div class="space-y-4">
+                        <div>
+                            <label class="form-label">kmh_per_pixel</label>
+                            <input type="number" id="inputKpp" class="form-input" step="0.0001"
+                                placeholder="e.g., 38.589">
+                            <p class="text-xs text-slate-500 mt-1">python auto_calibrate.py video_30.mp4 video_60.mp4
+                            </p>
+                        </div>
+                        <button onclick="saveManualCalibration()" class="btn btn-primary">Save Calibration</button>
+                    </div>
+                </div>
+
+                <!-- Result Panel -->
+                <div id="resultPanel" class="glass-card rounded-2xl p-6 hidden">
+                    <div class="flex items-center gap-3 mb-4">
+                        <div class="w-12 h-12 bg-emerald-600/20 rounded-xl flex items-center justify-center">
+                            <svg class="w-6 h-6 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M5 13l4 4L19 7"></path>
+                            </svg>
+                        </div>
+                        <div>
+                            <h3 class="font-semibold text-white">Calibration Complete!</h3>
+                            <p class="text-sm text-slate-400">Vehicle is now calibrated</p>
+                        </div>
+                    </div>
+
+                    <div class="bg-slate-800/50 rounded-xl p-4">
+                        <div class="grid grid-cols-2 gap-4 text-sm">
+                            <div>
+                                <p class="text-slate-400">kmh_per_pixel</p>
+                                <p class="text-xl font-mono text-emerald-400" id="resultKpp">-</p>
+                            </div>
+                            <div>
+                                <p class="text-slate-400">Offset</p>
+                                <p class="text-xl font-mono text-indigo-400" id="resultOffset">-</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <button id="saveResultBtn" class="btn btn-primary w-full mt-4">Save to Vehicle</button>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script src="../js/api.js"></script>
+    <script src="../js/utils.js"></script>
+    <script>
+        if (!requireAuth('admin')) { }
+
+        let vehicles = [];
+        let selectedVehicle = null;
+        let calibrationResult = null;
+
+        // Live recording state
+        let mediaStream = null;
+        let mediaRecorder = null;
+        let recordedChunks = [];
+        let recording30Blob = null;
+        let recording60Blob = null;
+        let recordingTimer = null;
+        let recordingSeconds = 0;
+
+        const urlParams = new URLSearchParams(window.location.search);
+        const preselectedId = urlParams.get('vehicle');
+
+        loadVehicles();
+
+        async function loadVehicles() {
+            try {
+                vehicles = await API.getAdminVehicles();
+                if (vehicles.error) {
+                    API.logout();
+                    return;
+                }
+                const select = document.getElementById('vehicleSelect');
+                select.innerHTML = '<option value="">-- Select a vehicle --</option>' +
+                    vehicles.map(v => `<option value="${v.id}">${escapeHtml(v.vehicle_id)} ${v.label ? '(' + escapeHtml(v.label) + ')' : ''}</option>`).join('');
+
+                if (preselectedId) {
+                    select.value = preselectedId;
+                    onVehicleSelect();
+                }
+            } catch (err) {
+                Toast.error('Failed to load vehicles');
+            }
+        }
+
+        document.getElementById('vehicleSelect').addEventListener('change', onVehicleSelect);
+
+        function onVehicleSelect() {
+            const id = document.getElementById('vehicleSelect').value;
+            if (!id) {
+                selectedVehicle = null;
+                document.getElementById('currentCalib').classList.add('hidden');
+                return;
+            }
+            selectedVehicle = vehicles.find(v => v.id == id);
+            const calibValue = document.getElementById('calibValue');
+            calibValue.textContent = selectedVehicle.kmh_per_pixel ? selectedVehicle.kmh_per_pixel.toFixed(4) : 'Not set';
+            document.getElementById('currentCalib').classList.remove('hidden');
+        }
+
+        function showMethod(method) {
+            document.getElementById('livePanel').classList.add('hidden');
+            document.getElementById('uploadPanel').classList.add('hidden');
+            document.getElementById('manualPanel').classList.add('hidden');
+            document.getElementById('resultPanel').classList.add('hidden');
+
+            if (method === 'live') {
+                document.getElementById('livePanel').classList.remove('hidden');
+            } else if (method === 'upload') {
+                document.getElementById('uploadPanel').classList.remove('hidden');
+            } else if (method === 'manual') {
+                document.getElementById('manualPanel').classList.remove('hidden');
+                if (selectedVehicle && selectedVehicle.kmh_per_pixel) {
+                    document.getElementById('inputKpp').value = selectedVehicle.kmh_per_pixel;
+                }
+            }
+        }
+
+        // ============ LIVE CAMERA ============
+        async function startCamera() {
+            try {
+                mediaStream = await navigator.mediaDevices.getUserMedia({
+                    video: { facingMode: 'environment', width: 1280, height: 720 },
+                    audio: false
+                });
+                document.getElementById('cameraPreview').srcObject = mediaStream;
+                document.getElementById('cameraPlaceholder').classList.add('hidden');
+                document.getElementById('startCameraBtn').classList.add('hidden');
+                document.getElementById('recordButtons').classList.remove('hidden');
+                Toast.success('Camera started!');
+            } catch (err) {
+                Toast.error('Could not access camera: ' + err.message);
+            }
+        }
+
+        function startRecording(speed) {
+            if (!mediaStream) {
+                Toast.error('Camera not started');
+                return;
+            }
+
+            recordedChunks = [];
+            recordingSeconds = 0;
+
+            mediaRecorder = new MediaRecorder(mediaStream, { mimeType: 'video/webm' });
+
+            mediaRecorder.ondataavailable = (e) => {
+                if (e.data.size > 0) recordedChunks.push(e.data);
+            };
+
+            mediaRecorder.onstop = () => {
+                const blob = new Blob(recordedChunks, { type: 'video/webm' });
+                if (speed === 30) {
+                    recording30Blob = blob;
+                    document.getElementById('status30').textContent = '✅ Recorded!';
+                    document.getElementById('status30').classList.add('text-emerald-400');
+                    document.getElementById('record30Btn').disabled = true;
+                    document.getElementById('record60Btn').disabled = false;
+                } else {
+                    recording60Blob = blob;
+                    document.getElementById('status60').textContent = '✅ Recorded!';
+                    document.getElementById('status60').classList.add('text-emerald-400');
+                    document.getElementById('record60Btn').disabled = true;
+                    document.getElementById('processLiveBtn').classList.remove('hidden');
+                }
+                document.getElementById('recordingIndicator').classList.add('hidden');
+                clearInterval(recordingTimer);
+            };
+
+            mediaRecorder.start();
+            document.getElementById('recordingIndicator').classList.remove('hidden');
+
+            const btn = speed === 30 ? document.getElementById('record30Btn') : document.getElementById('record60Btn');
+            btn.disabled = true;
+            btn.textContent = `Recording...`;
+
+            recordingTimer = setInterval(() => {
+                recordingSeconds++;
+                document.getElementById('recordingTimer').textContent = `Recording: ${recordingSeconds}s`;
+                if (recordingSeconds >= 10) {
+                    stopRecording();
+                }
+            }, 1000);
+        }
+
+        function stopRecording() {
+            if (mediaRecorder && mediaRecorder.state !== 'inactive') {
+                mediaRecorder.stop();
+            }
+        }
+
+        async function processLiveRecordings() {
+            if (!recording30Blob || !recording60Blob) {
+                Toast.error('Both recordings required');
+                return;
+            }
+            if (!selectedVehicle) {
+                Toast.error('Please select a vehicle first');
+                return;
+            }
+
+            document.getElementById('processLiveBtn').disabled = true;
+            document.getElementById('liveProgress').classList.remove('hidden');
+
+            // Convert webm to mp4 compatible format for server
+            const formData = new FormData();
+            formData.append('video_30', recording30Blob, 'recording_30.webm');
+            formData.append('video_60', recording60Blob, 'recording_60.webm');
+
+            try {
+                const res = await fetch('http://localhost:5000/api/admin/calibration/upload', {
+                    method: 'POST',
+                    headers: { 'Authorization': `Bearer ${API.getToken()}` },
+                    body: formData
+                });
+
+                const data = await res.json();
+                document.getElementById('processLiveBtn').disabled = false;
+                document.getElementById('liveProgress').classList.add('hidden');
+
+                if (!res.ok || data.error) {
+                    Toast.error(data.error || 'Calibration failed');
+                    return;
+                }
+
+                showResult(data);
+                Toast.success('Calibration calculated!');
+
+            } catch (err) {
+                document.getElementById('processLiveBtn').disabled = false;
+                document.getElementById('liveProgress').classList.add('hidden');
+                Toast.error('Error: ' + err.message);
+            }
+        }
+
+        // ============ FILE UPLOAD ============
+        document.getElementById('uploadForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+
+            if (!selectedVehicle) {
+                Toast.error('Please select a vehicle first');
+                return;
+            }
+
+            const video30 = document.getElementById('video30').files[0];
+            const video60 = document.getElementById('video60').files[0];
+
+            if (!video30 || !video60) {
+                Toast.error('Please select both videos');
+                return;
+            }
+
+            document.getElementById('uploadBtn').disabled = true;
+            document.getElementById('uploadProgress').classList.remove('hidden');
+
+            const formData = new FormData();
+            formData.append('video_30', video30);
+            formData.append('video_60', video60);
+
+            try {
+                const res = await fetch('http://localhost:5000/api/admin/calibration/upload', {
+                    method: 'POST',
+                    headers: { 'Authorization': `Bearer ${API.getToken()}` },
+                    body: formData
+                });
+
+                const data = await res.json();
+                document.getElementById('uploadBtn').disabled = false;
+                document.getElementById('uploadProgress').classList.add('hidden');
+
+                if (!res.ok || data.error) {
+                    Toast.error(data.error || 'Calibration failed');
+                    return;
+                }
+
+                showResult(data);
+                Toast.success('Calibration calculated!');
+
+            } catch (err) {
+                document.getElementById('uploadBtn').disabled = false;
+                document.getElementById('uploadProgress').classList.add('hidden');
+                Toast.error('Upload failed: ' + err.message);
+            }
+        });
+
+        function showResult(data) {
+            calibrationResult = data;
+            document.getElementById('resultKpp').textContent = data.kmh_per_pixel.toFixed(4);
+            document.getElementById('resultOffset').textContent = data.offset.toFixed(4);
+
+            document.getElementById('livePanel').classList.add('hidden');
+            document.getElementById('uploadPanel').classList.add('hidden');
+            document.getElementById('resultPanel').classList.remove('hidden');
+        }
+
+        document.getElementById('saveResultBtn').addEventListener('click', async () => {
+            if (!selectedVehicle || !calibrationResult) return;
+
+            try {
+                await API.saveCalibration(selectedVehicle.id, calibrationResult.kmh_per_pixel);
+                Toast.success('Calibration saved!');
+                selectedVehicle.kmh_per_pixel = calibrationResult.kmh_per_pixel;
+                document.getElementById('calibValue').textContent = calibrationResult.kmh_per_pixel.toFixed(4);
+            } catch (err) {
+                Toast.error('Failed to save');
+            }
+        });
+
+        async function saveManualCalibration() {
+            if (!selectedVehicle) {
+                Toast.error('Please select a vehicle first');
+                return;
+            }
+            const kpp = parseFloat(document.getElementById('inputKpp').value);
+            if (!kpp || kpp <= 0) {
+                Toast.error('Enter a valid positive number');
+                return;
+            }
+            try {
+                await API.saveCalibration(selectedVehicle.id, kpp);
+                Toast.success('Calibration saved!');
+                selectedVehicle.kmh_per_pixel = kpp;
+                document.getElementById('calibValue').textContent = kpp.toFixed(4);
+                document.getElementById('manualPanel').classList.add('hidden');
+            } catch (err) {
+                Toast.error('Failed to save');
+            }
+        }
+    </script>
+</body>
+
+</html>

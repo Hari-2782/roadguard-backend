@@ -1,0 +1,833 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Live Detection - RoadGuard Platform</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="../css/styles.css">
+    <script src="../js/theme.js"></script>
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+
+        #videoFeed {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+            background: #000;
+            border-radius: 0.75rem;
+            min-height: 360px;
+        }
+
+        .risk-low {
+            color: #34d399;
+        }
+
+        .risk-medium {
+            color: #fbbf24;
+        }
+
+        .risk-high {
+            color: #f97316;
+        }
+
+        .risk-critical {
+            color: #ef4444;
+        }
+
+        .risk-idle {
+            color: #94a3b8;
+        }
+
+        .badge {
+            display: inline-block;
+            padding: 2px 8px;
+            border-radius: 999px;
+            font-size: 0.7rem;
+            font-weight: 600;
+        }
+
+        .drop-zone {
+            transition: border-color 0.2s, background-color 0.2s;
+        }
+
+        .drop-zone.hover {
+            border-color: #6366f1;
+            background-color: rgba(99, 102, 241, 0.08);
+        }
+    </style>
+</head>
+
+<body class="bg-slate-900 min-h-screen text-slate-100">
+
+    <div class="flex">
+        <!-- Sidebar -->
+        <aside class="w-64 min-h-screen p-4 fixed left-0 top-0 bg-slate-900 border-r border-slate-800 flex flex-col">
+            <div class="flex items-center gap-3 mb-8 px-2">
+                <div
+                    class="w-10 h-10 bg-indigo-600 rounded-xl flex items-center justify-center shadow-lg shadow-indigo-500/20">
+                    <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                    </svg>
+                </div>
+                <div>
+                    <h2 class="font-bold text-white text-lg">RoadGuard AI</h2>
+                    <p class="text-xs text-slate-400">Safety Intelligence Suite</p>
+                </div>
+            </div>
+
+            <nav class="space-y-1 mb-6">
+                <a href="dashboard.html"
+                    class="flex items-center gap-3 px-3 py-2 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6">
+                        </path>
+                    </svg>
+                    <span>Overview</span>
+                </a>
+                <a href="analysis.html"
+                    class="flex items-center gap-3 px-3 py-2 rounded-lg bg-indigo-600/10 text-indigo-400">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z">
+                        </path>
+                    </svg>
+                    <span class="font-medium">Live Detection</span>
+                </a>
+                <a href="vehicles.html"
+                    class="flex items-center gap-3 px-3 py-2 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M9 17a2 2 0 11-4 0 2 2 0 014 0zM19 17a2 2 0 11-4 0 2 2 0 014 0z"></path>
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M13 16V6a1 1 0 00-1-1H4a1 1 0 00-1 1v10l2 2h6l2-2zm0 0h4a1 1 0 001-1v-4l-3-5h-2"></path>
+                    </svg>
+                    <span>My Vehicles</span>
+                </a>
+                <a href="pothole.html"
+                    class="flex items-center gap-3 px-3 py-2 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7"></path>
+                    </svg>
+                    <span>Pothole Analytics</span>
+                </a>
+                <a href="hazard.html"
+                    class="flex items-center gap-3 px-3 py-2 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7"></path>
+                    </svg>
+                    <span>Hazard Analytics</span>
+                </a>
+            </nav>
+
+            <!-- Camera / Video controls -->
+            <div class="space-y-2 px-1">
+                <p class="text-xs text-slate-500 font-semibold uppercase tracking-wider mb-2">Source</p>
+                <!-- Live camera — source 0=built-in, 1=USB/GoPro/mobile -->
+                <div class="flex gap-1">
+                    <select id="camSource"
+                        class="bg-slate-800 border border-slate-700 text-slate-300 text-xs rounded-l-lg px-2 py-2 outline-none focus:border-indigo-500 w-20"
+                        title="0 = built-in webcam, 1 = USB/GoPro, 2 = next device…">
+                        <option value="0">Cam 0</option>
+                        <option value="1">Cam 1 (GoPro/Phone)</option>
+                        <option value="2">Cam 2</option>
+                    </select>
+                    <button onclick="startLive()"
+                        class="flex-1 flex items-center justify-center gap-2 px-3 py-2 bg-emerald-700 hover:bg-emerald-600 text-white rounded-r-lg transition font-medium text-sm">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M15 10l4.553-2.276A1 1 0 0121 8.723v6.554a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                        </svg>
+                        Live Camera
+                    </button>
+                </div>
+                <button onclick="stopDetection()"
+                    class="w-full flex items-center justify-center gap-2 px-3 py-2 bg-rose-700 hover:bg-rose-800 text-white rounded-lg transition font-medium text-sm">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <rect x="6" y="6" width="12" height="12" rx="1" fill="currentColor" />
+                    </svg>
+                    Stop
+                </button>
+            </div>
+
+            <!-- Vehicle selector for analysis -->
+            <div class="mt-4 px-1">
+                <p class="text-xs text-slate-500 font-semibold uppercase tracking-wider mb-2">Vehicle</p>
+                <select id="vehicleSelect"
+                    class="w-full bg-slate-800 border border-slate-700 text-slate-300 text-sm rounded-lg px-3 py-2 focus:border-indigo-500 outline-none">
+                    <option value="DEMO-CAR-01">No vehicle selected</option>
+                </select>
+            </div>
+
+            <!-- Upload trigger -->
+            <div class="mt-4 px-1">
+                <p class="text-xs text-slate-500 font-semibold uppercase tracking-wider mb-2">Or Upload Video</p>
+                <input type="file" id="hiddenFile" class="hidden" accept="video/*" onchange="handleFileSelect(event)">
+                <button onclick="document.getElementById('hiddenFile').click()"
+                    class="w-full flex items-center justify-center gap-2 px-3 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg transition font-medium text-sm">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
+                    </svg>
+                    Select Video
+                </button>
+            </div>
+
+            <!-- Status pill -->
+            <div id="statusPill"
+                class="mt-4 px-3 py-2 rounded-xl bg-slate-800 border border-slate-700 text-xs text-center text-slate-400">
+                Idle — no source
+            </div>
+
+            <div class="mt-auto">
+                <button onclick="API.logout()"
+                    class="w-full text-slate-500 hover:text-slate-300 text-xs py-2 transition">Sign Out</button>
+            </div>
+        </aside>
+
+        <main class="ml-64 flex-1 p-6">
+
+            <div class="w-full max-w-[1600px] mx-auto space-y-6">
+
+                <!-- HEADER -->
+                <div class="flex items-center justify-between">
+                    <h1 class="text-xl font-semibold text-white">Detection Feed</h1>
+
+                    <div id="riskBadge"
+                        class="px-4 py-1.5 rounded-full bg-slate-800 border border-slate-700 text-sm font-bold risk-idle">
+                        ● IDLE
+                    </div>
+                </div>
+
+
+                <!-- VIDEO + TELEMETRY -->
+                <div class="grid grid-cols-1 lg:grid-cols-3 gap-4">
+
+                    <!-- VIDEO PANEL -->
+                    <div class="lg:col-span-2 bg-black rounded-2xl overflow-hidden border border-slate-700 relative"
+                        style="aspect-ratio:16/9; max-height:460px;">
+
+                        <img id="videoFeed" src="/api/stream" alt="Live Detection">
+
+                        <div id="dropOverlay"
+                            class="absolute inset-0 flex flex-col items-center justify-center bg-black/70 rounded-2xl z-10 drop-zone border-2 border-dashed border-slate-600"
+                            ondragover="event.preventDefault(); this.classList.add('hover')"
+                            ondragleave="this.classList.remove('hover')" ondrop="handleDrop(event)">
+
+                            <svg class="w-14 h-14 text-slate-500 mb-3" fill="none" stroke="currentColor"
+                                viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"
+                                    d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+                            </svg>
+
+                            <p class="text-slate-300 font-medium">
+                                Drop video here or click
+                                <button onclick="document.getElementById('hiddenFile').click()"
+                                    class="text-indigo-400 underline">
+                                    Select Video
+                                </button>
+                            </p>
+
+                            <p class="text-slate-500 text-xs mt-1">
+                                MP4, AVI, MOV — or click <strong class="text-slate-400">Live Camera</strong>
+                            </p>
+
+                        </div>
+                    </div>
+
+
+                    <!-- TELEMETRY PANEL -->
+                    <div class="space-y-3">
+
+                        <div class="bg-slate-800 rounded-xl p-3 border border-slate-700">
+                            <p class="text-slate-500 text-xs uppercase font-semibold">Hazards</p>
+                            <p id="statHazards" class="text-xl font-semibold text-white">—</p>
+                        </div>
+
+                        <div class="bg-slate-800 rounded-xl p-3 border border-slate-700">
+                            <p class="text-slate-500 text-xs uppercase font-semibold">Potholes</p>
+                            <p id="statPotholes" class="text-xl font-semibold text-white">—</p>
+                        </div>
+
+                        <div class="bg-slate-800 rounded-xl p-3 border border-slate-700">
+                            <p class="text-slate-500 text-xs uppercase font-semibold">Speed Limit</p>
+                            <p id="statLimit" class="text-xl font-semibold text-white">—</p>
+                        </div>
+
+                        <!-- <div class="bg-slate-800 rounded-xl p-3 border border-slate-700">
+                            <p class="text-slate-500 text-xs uppercase font-semibold">Lane Status</p>
+                            <p id="statLane" class="text-xl font-semibold text-emerald-400">OK</p>
+                        </div> -->
+
+                        <!-- <div class="bg-slate-800 rounded-xl p-3 border border-slate-700">
+                            <p class="text-slate-400 text-xs font-semibold uppercase mb-2">
+                                Active Risk Factors
+                            </p>
+
+                            <div id="riskFactors" class="space-y-1 text-sm text-slate-300">
+                                <span class="text-slate-600 text-xs">No active factors</span>
+                            </div>
+
+                        </div> -->
+
+                    </div>
+                </div>
+
+
+                <!-- ANALYTICS GRID -->
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-4 items-start">
+
+                    <!-- LEFT SIDE -->
+                    <div class="space-y-4">
+                        <div class="bg-slate-800 rounded-xl p-3 border border-slate-700">
+                            <p class="text-slate-400 text-xs font-semibold uppercase mb-2">
+                                Scene Risk Timeline
+                            </p>
+                            <canvas id="riskChart" height="120"></canvas>
+                        </div>
+                    </div>
+
+                    <div class="space-y-4">
+                        <div class="bg-slate-800 rounded-xl p-3 border border-slate-700">
+                            <p class="text-slate-400 text-xs font-semibold uppercase mb-2">
+                                Risk Contributors
+                            </p>
+                            <div id="riskBars" class="space-y-2"></div>
+                        </div>
+
+                        <!-- RIGHT SIDE -->
+                        <div class="space-y-4">
+                            <!-- <div class="bg-slate-800 rounded-xl p-3 border border-slate-700">
+                                <p class="text-slate-400 text-xs font-semibold uppercase mb-2">
+                                    Risk Factors
+                                </p>
+
+                                <div id="riskFactors" class="space-y-1 text-xs">
+                                    <span class="text-slate-600 text-xs">No active factors</span>
+                                </div>
+                            </div> -->
+                            <div class="bg-slate-800 rounded-xl p-3 border border-slate-700">
+                                <p class="text-slate-400 text-xs font-semibold uppercase mb-2">
+                                    Detected Signs
+                                </p>
+
+                                <div id="signTags" class="flex flex-wrap gap-2 min-h-6">
+                                    <span class="text-slate-600 text-xs">None detected</span>
+                                </div>
+                            </div>
+
+                            <!-- GPS Location Card (hidden until video upload) -->
+                            <div id="gpsCard" class="hidden bg-slate-800 rounded-xl p-3 border border-slate-700">
+                                <p class="text-slate-400 text-xs font-semibold uppercase mb-2 flex items-center gap-2">
+                                    <svg class="w-3.5 h-3.5 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                            d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/>
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                            d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"/>
+                                    </svg>
+                                    GPS Location
+                                </p>
+
+                                <!-- Panel shown when GPS is extracted from video -->
+                                <div id="gpsFoundPanel" class="hidden">
+                                    <p id="gpsCoords" class="text-emerald-400 text-sm font-mono mb-2">—</p>
+                                    <a id="gpsMapsLink" href="#" target="_blank" rel="noopener noreferrer"
+                                        class="inline-flex items-center gap-1 text-xs text-indigo-400 hover:text-indigo-300 underline transition">
+                                        <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                                d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/>
+                                        </svg>
+                                        Open in Google Maps
+                                    </a>
+                                </div>
+
+                                <!-- Manual entry panel (shown when no GPS in video) -->
+                                <div id="gpsManualPanel" class="hidden">
+                                    <p class="text-xs text-amber-400 mb-2">No GPS in video — enter location manually</p>
+                                    <div class="flex gap-2 mb-2">
+                                        <input id="manualLat" type="number" step="any" placeholder="Latitude"
+                                            class="flex-1 bg-slate-700 border border-slate-600 text-slate-200 text-xs rounded-lg px-2 py-1.5 focus:border-indigo-500 outline-none"
+                                            min="-90" max="90">
+                                        <input id="manualLon" type="number" step="any" placeholder="Longitude"
+                                            class="flex-1 bg-slate-700 border border-slate-600 text-slate-200 text-xs rounded-lg px-2 py-1.5 focus:border-indigo-500 outline-none"
+                                            min="-180" max="180">
+                                    </div>
+                                    <div class="flex gap-2">
+                                        <button onclick="tryBrowserLocation()"
+                                            class="flex-1 text-xs px-2 py-1.5 rounded-lg bg-slate-700 hover:bg-slate-600 text-slate-300 transition font-medium">
+                                            📍 Use My Location
+                                        </button>
+                                        <button id="saveGpsBtn" onclick="saveManualGPS()"
+                                            class="flex-1 text-xs px-2 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white transition font-medium">
+                                            Save GPS
+                                        </button>
+                                    </div>
+                                    <p id="gpsSaveMsg" class="text-xs mt-2 text-center hidden"></p>
+                                </div>
+                            </div>
+
+                            <div id="uploadProgress" class="hidden bg-slate-800 rounded-xl p-3 border border-slate-700">
+
+                                <p id="uploadMsg" class="text-sm text-yellow-400 font-medium mb-2">
+                                    Uploading…
+                                </p>
+
+                                <div class="w-full bg-slate-700 rounded-full h-2">
+                                    <div id="progressBar" class="bg-indigo-500 h-2 rounded-full transition-all"
+                                        style="width:0%">
+                                    </div>
+                                </div>
+
+                            </div>
+
+                        </div>
+
+                    </div>
+
+                </div>
+
+        </main>
+    </div>
+
+    <script src="../js/api.js"></script>
+    <script>
+        const vidEl = document.getElementById('videoFeed');
+        const dropOverlay = document.getElementById('dropOverlay');
+        const riskBadge = document.getElementById('riskBadge');
+        const statusPill = document.getElementById('statusPill');
+        let statusInterval = null;
+        let wasRunning = false;  // tracks previous poll state to detect auto-stop
+        let currentVehicleId = 'DEMO-CAR-01';
+        let pendingGpsVehicle = null;   // vehicle_id awaiting manual GPS entry
+
+        function startStatusPolling() {
+            if (statusInterval) return;
+            statusInterval = setInterval(pollStatus, 800);
+        }
+
+        function stopStatusPolling() {
+            if (statusInterval) {
+                clearInterval(statusInterval);
+                statusInterval = null;
+            }
+        }
+
+        async function stopDetection() {
+            await fetch('/api/stream/stop', {
+                method: 'POST',
+                headers: API.getHeaders()
+            });
+
+            stopStatusPolling();
+            setStatus('Stopped', 'slate');
+            dropOverlay.style.display = 'flex';
+        }
+
+        function hideDropOverlay() {
+            dropOverlay.style.display = 'none';
+        }
+
+        async function startLive() {
+            const camSource = parseInt(document.getElementById('camSource').value, 10);
+            const vehicleId = document.getElementById('vehicleSelect').value || 'DEMO-CAR-01';
+            try {
+                const res = await fetch('/api/stream/start', {
+                    method: 'POST',
+                    headers: API.getHeaders(),
+                    body: JSON.stringify({ source: camSource, vehicle_id: vehicleId })
+                }).then(r => r.json());
+
+                if (res.ok) {
+                    hideDropOverlay();
+                    setStatus(`Live Camera (Cam ${camSource})`, 'emerald');
+                    document.getElementById('videoFeed').src = '/api/stream?t=' + Date.now();
+                    startStatusPolling();
+                } else {
+                    alert(`Camera error: ${res.error || 'Could not open camera source ' + camSource}\n\nTip: Make sure your GoPro/phone is connected as a USB webcam and try Cam 1 or Cam 2.`);
+                }
+            } catch (e) {
+                alert('Could not connect to server. Is the backend running?');
+            }
+        }
+
+        async function handleFileSelect(evt) {
+            const file = evt.target.files[0];
+            if (!file) return;
+            await uploadAndStream(file);
+        }
+
+        async function handleDrop(evt) {
+            evt.preventDefault();
+            dropOverlay.classList.remove('hover');
+            const file = evt.dataTransfer.files[0];
+            if (!file) return;
+            await uploadAndStream(file);
+        }
+
+        async function uploadAndStream(file) {
+            hideDropOverlay();
+            // Show progress
+            const prog = document.getElementById('uploadProgress');
+            const bar = document.getElementById('progressBar');
+            const msg = document.getElementById('uploadMsg');
+            prog.classList.remove('hidden');
+            msg.textContent = `Uploading "${file.name}"...`;
+            bar.style.width = '20%';
+            setStatus('Uploading...', 'yellow');
+
+            try {
+                // Get selected vehicle_id
+                const vehicleId = document.getElementById('vehicleSelect').value;
+                const res = await API.uploadVideoWithVehicle(file, vehicleId);
+                bar.style.width = '100%';
+                if (res.ok) {
+                    msg.textContent = `OK ${res.message}`;
+                    msg.className = 'text-sm text-emerald-400 font-medium mb-2';
+                    setStatus(file.name, 'indigo');
+
+                    // Force the video element to reconnect to the new MJPEG stream
+                    document.getElementById('videoFeed').src = '/api/stream?t=' + Date.now();
+
+                    startStatusPolling();
+                    setTimeout(() => {
+                        prog.classList.add('hidden');
+                        msg.textContent = '';
+                    }, 2000);
+
+                    // Show GPS card — found or manual entry
+                    currentVehicleId = vehicleId;
+                    pendingGpsVehicle = vehicleId;
+                    const gpsCard = document.getElementById('gpsCard');
+                    gpsCard.classList.remove('hidden');
+
+                    if (res.gps) {
+                        const { lat, lon } = res.gps;
+                        document.getElementById('gpsCoords').textContent =
+                            `Lat: ${lat.toFixed(6)}, Lon: ${lon.toFixed(6)}`;
+                        document.getElementById('gpsMapsLink').href =
+                            `https://www.google.com/maps?q=${lat},${lon}`;
+                        document.getElementById('gpsFoundPanel').classList.remove('hidden');
+                        document.getElementById('gpsManualPanel').classList.add('hidden');
+                    } else {
+                        document.getElementById('gpsFoundPanel').classList.add('hidden');
+                        document.getElementById('gpsManualPanel').classList.remove('hidden');
+                        document.getElementById('gpsSaveMsg').classList.add('hidden');
+                    }
+                } else {
+                    msg.textContent = `X ${res.error || 'Upload failed'}`;
+                    msg.className = 'text-sm text-rose-400 font-medium mb-2';
+                    setStatus('Upload failed', 'rose');
+                }
+            } catch (e) {
+                console.warn("Upload request ended:", e);
+                const prog = document.getElementById('uploadProgress');
+                prog.classList.add('hidden');
+            }
+        }
+
+        function setStatus(text, color) {
+            const colors = {
+                emerald: 'text-emerald-400 border-emerald-800 bg-emerald-900/30',
+                indigo: 'text-indigo-400 border-indigo-800 bg-indigo-900/30',
+                rose: 'text-rose-400 border-rose-900 bg-rose-900/30',
+                yellow: 'text-yellow-400 border-yellow-900 bg-yellow-900/20',
+                slate: 'text-slate-400 border-slate-700 bg-slate-800',
+            };
+            statusPill.className = `mt-4 px-3 py-2 rounded-xl border text-xs text-center font-medium ${colors[color] || colors.slate}`;
+            statusPill.textContent = text;
+        }
+
+        function riskClass(level) {
+            return { LOW: 'risk-low', MEDIUM: 'risk-medium', HIGH: 'risk-high', CRITICAL: 'risk-critical', IDLE: 'risk-idle' }[level] || 'risk-idle';
+        }
+
+        async function pollStatus() {
+            try {
+                const s = await fetch('/api/stream/status').then(r => r.json());
+
+                // When stream stops after being active (video finished) — restore overlay
+                if (wasRunning && !s.running) {
+                    stopStatusPolling();
+                    dropOverlay.style.display = 'flex';
+                    setStatus('Idle — no source', 'slate');
+                    riskBadge.className = 'px-4 py-1.5 rounded-full bg-slate-800 border border-slate-700 text-sm font-bold risk-idle';
+                    riskBadge.textContent = '● IDLE';
+                }
+                wasRunning = s.running;
+
+                // Update risk badge
+                riskBadge.className = `px-4 py-1.5 rounded-full bg-slate-800 border border-slate-700 text-sm font-bold ${riskClass(s.risk_level)}`;
+                riskBadge.textContent = `● ${s.risk_level}  (${s.risk.toFixed(2)})`;
+
+                // Stats
+                document.getElementById('statHazards').textContent = s.running ? s.hazards : '—';
+                document.getElementById('statPotholes').textContent = s.running ? s.potholes : '—';
+                document.getElementById('statLimit').textContent = s.speed_limit ? `${s.speed_limit}` : (s.running ? 'N/A' : '—');
+
+                Chart.defaults.backgroundColor = 'transparent';
+                riskHistory.push(Number(s.risk.toFixed(3)));
+                labels.push(Date.now());
+
+                if (riskHistory.length > 40) {
+                    riskHistory.shift();
+                    labels.shift();
+                }
+
+                riskChart.data.labels = labels;
+                riskChart.data.datasets[0].data = riskHistory;
+
+                riskChart.update('none');
+
+                // Risk factors panel
+                const factors = [];
+
+                if (s.hazards > 0)
+                    factors.push(`⚠ Hazard objects detected (${s.hazards})`);
+
+                if (s.potholes > 0)
+                    factors.push(`⚠ Road potholes detected (${s.potholes})`);
+
+                if (s.lane_crossing)
+                    factors.push(`⚠ Lane departure detected`);
+
+                if (s.speed_limit)
+                    factors.push(`ℹ Speed limit active (${s.speed_limit} km/h)`);
+
+                const box = document.getElementById('riskFactors');
+
+                if (factors.length > 0) {
+                    box.innerHTML = factors.map(f =>
+                        `<div class="text-amber-400">${f}</div>`
+                    ).join('');
+                } else {
+                    box.innerHTML = `<span class="text-slate-600 text-xs">No active factors</span>`;
+                }
+
+                const contribBox = document.getElementById("riskBars");
+
+                if (!s.risk_components || typeof s.risk_components !== "object") {
+
+                    contribBox.innerHTML = `
+                        <div class="text-xs text-slate-500">
+                        No risk contributors detected
+                        </div>
+                    `;
+
+                } else {
+
+                    const comp = s.risk_components;
+
+                    const items = [
+                        { name: "Hazard proximity", val: comp.hazard },
+                        { name: "Pothole severity", val: comp.pothole },
+                        { name: "Lane violation", val: comp.lane },
+                        { name: "Temporal smoothing", val: comp.temporal }
+                    ];
+
+                    contribBox.innerHTML = items.map(i => `
+
+                        <div>
+                            <div class="flex justify-between text-xs text-slate-400 mb-1">
+                                <span>${i.name}</span>
+                                <span>${i.val.toFixed(2)}</span>
+                            </div>
+
+                            <div class="w-full h-2 bg-slate-700 rounded">
+                                <div class="h-2 rounded"
+                                style="background:#f87171;width:${Math.min(i.val * 100, 100)}%">
+                                </div>
+                            </div>
+                        </div>
+
+                    `).join('');
+
+                }
+
+                const laneEl = document.getElementById('statLane');
+                if (s.lane_crossing) {
+                    laneEl.textContent = 'CROSSING';
+                    laneEl.className = 'text-2xl font-bold text-red-400';
+                } else {
+                    laneEl.textContent = s.running ? 'OK' : '—';
+                    laneEl.className = 'text-2xl font-bold text-emerald-400';
+                }
+
+                // Signs
+                const signBox = document.getElementById('signTags');
+                if (s.signs && s.signs.length > 0) {
+                    signBox.innerHTML = s.signs.map(sg => {
+                        // Parse sign name for better display (e.g., "Speed_50" → "🚦 Speed 50")
+                        const clean = sg.replace(/_/g, ' ');
+                        return `<span class="badge bg-emerald-900/50 text-emerald-300 border border-emerald-800 transition hover:bg-emerald-800/70" title="Detected: ${sg}">🚦 ${clean}</span>`;
+                    }).join('');
+                } else {
+                    signBox.innerHTML = '<span class="text-slate-600 text-xs">🚫 No signs detected</span>';
+                }
+
+                // Source info in badge tooltip
+                if (s.running && s.source) {
+                    statusPill.title = `Source: ${s.source} | Frame: ${s.frame}`;
+                }
+            } catch (e) { /* server might be off */ }
+        }
+
+        // Load vehicle dropdown
+        async function loadVehicleDropdown() {
+            try {
+                const vehicles = await API.getUserVehicles();
+                const sel = document.getElementById('vehicleSelect');
+                if (vehicles && vehicles.length > 0) {
+                    sel.innerHTML = vehicles.map(v =>
+                        `<option value="${v.vehicle_id}">${v.vehicle_id}${v.label ? ' - ' + v.label : ''}</option>`
+                    ).join('');
+                    currentVehicleId = sel.value;
+                }
+            } catch (e) { console.log('Could not load vehicles:', e); }
+        }
+        loadVehicleDropdown();
+
+        // Use the browser's geolocation for the manual GPS input
+        function tryBrowserLocation() {
+            if (!navigator.geolocation) {
+                alert('Geolocation is not supported by your browser.');
+                return;
+            }
+            navigator.geolocation.getCurrentPosition(
+                pos => {
+                    document.getElementById('manualLat').value = pos.coords.latitude.toFixed(6);
+                    document.getElementById('manualLon').value = pos.coords.longitude.toFixed(6);
+                },
+                () => alert('Could not get your location. Please enter it manually.')
+            );
+        }
+
+        // Save manually-entered GPS and re-log potholes from the last stream
+        async function saveManualGPS() {
+            const lat = parseFloat(document.getElementById('manualLat').value);
+            const lon = parseFloat(document.getElementById('manualLon').value);
+            const msgEl = document.getElementById('gpsSaveMsg');
+
+            if (isNaN(lat) || isNaN(lon) || lat < -90 || lat > 90 || lon < -180 || lon > 180) {
+                msgEl.textContent = '⚠ Enter valid latitude (-90..90) and longitude (-180..180)';
+                msgEl.className = 'text-xs mt-2 text-center text-amber-400';
+                msgEl.classList.remove('hidden');
+                return;
+            }
+
+            document.getElementById('saveGpsBtn').disabled = true;
+            msgEl.textContent = 'Saving…';
+            msgEl.className = 'text-xs mt-2 text-center text-slate-400';
+            msgEl.classList.remove('hidden');
+
+            try {
+                const res = await fetch('/api/potholes/manual', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${API.getToken()}`
+                    },
+                    body: JSON.stringify({
+                        lat, lon,
+                        vehicle_id: pendingGpsVehicle || currentVehicleId
+                    })
+                });
+                const data = await res.json();
+                if (data.ok) {
+                    msgEl.textContent = `✔ ${data.count} pothole(s) pinned on map at ${lat.toFixed(4)}, ${lon.toFixed(4)}`;
+                    msgEl.className = 'text-xs mt-2 text-center text-emerald-400';
+                    document.getElementById('saveGpsBtn').disabled = false;
+                } else {
+                    msgEl.textContent = '✖ ' + (data.error || 'Failed to save');
+                    msgEl.className = 'text-xs mt-2 text-center text-rose-400';
+                    document.getElementById('saveGpsBtn').disabled = false;
+                }
+            } catch (e) {
+                msgEl.textContent = '✖ Network error';
+                msgEl.className = 'text-xs mt-2 text-center text-rose-400';
+                document.getElementById('saveGpsBtn').disabled = false;
+            }
+        }
+
+        const riskHistory = [];
+        const labels = [];
+
+        const ctx = document.getElementById('riskChart').getContext('2d');
+
+        const riskChart = new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: labels,
+                datasets: [{
+                    label: 'Risk Score',
+                    data: riskHistory,
+                    borderColor: '#f87171',
+                    backgroundColor: 'rgba(248,113,113,0.12)',
+                    borderWidth: 3,
+                    pointRadius: 0,
+                    tension: 0.4,
+                    fill: true
+                }]
+            },
+            plugins: {
+                legend: {
+                    labels: {
+                        color: '#94a3b8',
+                        font: {
+                            size: 11,
+                            weight: '500'
+                        }
+                    }
+                }
+            },
+            layout: {
+                padding: {
+                    top: 5,
+                    bottom: 5,
+                    left: 5,
+                    right: 10
+                }
+            },
+            options: {
+                responsive: true,
+                plugins: {
+                    legend: {
+                        labels: {
+                            color: '#cbd5f5'
+                        }
+                    }
+                },
+                scales: {
+                    x: {
+                        grid: {
+                            color: 'rgba(255,255,255,0.05)'
+                        },
+                        ticks: {
+                            display: false
+                        }
+                    },
+                    y: {
+                        min: 0,
+                        max: 1,
+                        grid: {
+                            color: 'rgba(255,255,255,0.05)'
+                        },
+                        ticks: {
+                            color: '#94a3b8'
+                        }
+                    }
+                }
+            }
+        }); 
+    </script>
+</body>
+
+</html>

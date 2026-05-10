@@ -1,0 +1,1022 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard - RoadGuard Platform</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+        integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="" />
+    <link rel="stylesheet" href="../css/styles.css">
+    <script src="../js/theme.js"></script>
+    <style>
+        #map {
+            height: 300px;
+            width: 100%;
+            border-radius: 0.75rem;
+            z-index: 1;
+        }
+        .leaflet-popup-content-wrapper {
+            background: #1e293b;
+            color: #e2e8f0;
+            border: 1px solid #334155;
+            border-radius: 0.75rem;
+        }
+        .leaflet-popup-tip {
+            background: #1e293b;
+        }
+
+        .leaflet-popup-content {
+            margin: 10px 14px;
+        }
+
+        .map-popup-btn {
+            display: inline-block;
+            margin-top: 6px;
+            margin-right: 4px;
+            padding: 3px 10px;
+            border-radius: 6px;
+            font-size: 0.7rem;
+            font-weight: 600;
+            cursor: pointer;
+            border: none;
+        }
+
+        .map-popup-btn.del {
+            background: #ef444420;
+            color: #f87171;
+            border: 1px solid #ef444440;
+        }
+
+        .map-popup-btn.del:hover {
+            background: #ef4444;
+            color: #fff;
+        }
+
+        .map-popup-btn.save {
+            background: #6366f120;
+            color: #a5b4fc;
+            border: 1px solid #6366f140;
+        }
+
+        .map-popup-btn.save:hover {
+            background: #6366f1;
+            color: #fff;
+        }
+
+        #addModeBtn.active {
+            background: #f59e0b;
+            color: #000;
+        }
+    </style>
+</head>
+
+<body class="bg-slate-900 min-h-screen text-slate-100 font-sans">
+
+    <div class="flex">
+        <!-- Sidebar -->
+        <aside class="sidebar w-64 min-h-screen p-4 fixed left-0 top-0 bg-slate-900 border-r border-slate-800">
+            <div class="flex items-center gap-3 mb-8 px-2">
+                <div
+                    class="w-10 h-10 bg-indigo-600 rounded-xl flex items-center justify-center shadow-lg shadow-indigo-500/20">
+                    <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                    </svg>
+                </div>
+                <div>
+                    <h2 class="font-bold text-white text-lg">RoadGuard AI</h2>
+                    <p class="text-xs text-slate-400">Safety Intelligence Suite</p>
+                </div>
+            </div>
+
+            <nav class="space-y-1">
+                <a href="dashboard.html"
+                    class="flex items-center gap-3 px-3 py-2 rounded-lg bg-indigo-600/10 text-indigo-400">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M13 10V3L4 14h7v7l9-11h-7z"></path>
+                    </svg>
+                    <span class="font-medium">Risk Dashboard</span>
+                </a>
+                <a href="analysis.html"
+                    class="flex items-center gap-3 px-3 py-2 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M7 12l3-3 3 3 4-4M8 21l4-4 4 4M3 4h18M4 4h16v12a1 1 0 01-1 1H5a1 1 0 01-1-1V4z"></path>
+                    </svg>
+                    <span>Analysis & Upload</span>
+                </a>
+                <a href="sensors.html"
+                    class="flex items-center gap-3 px-3 py-2 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z">
+                        </path>
+                    </svg>
+                    <span>Driver Behavior</span>
+                </a>
+                <a href="vehicles.html"
+                    class="flex items-center gap-3 px-3 py-2 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M9 17a2 2 0 11-4 0 2 2 0 014 0zM19 17a2 2 0 11-4 0 2 2 0 014 0z"></path>
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M13 16V6a1 1 0 00-1-1H4a1 1 0 00-1 1v10l2 2h6l2-2zm0 0h4a1 1 0 001-1v-4l-3-5h-2"></path>
+                    </svg>
+                    <span>My Vehicles</span>
+                </a>
+                <a href="pothole.html"
+                    class="flex items-center gap-3 px-3 py-2 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7"></path>
+                    </svg>
+                    <span>Pothole Analytics</span>
+                </a>
+                <a href="hazard.html"
+                    class="flex items-center gap-3 px-3 py-2 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7"></path>
+                    </svg>
+                    <span>Hazard Analytics</span>
+                </a>
+            </nav>
+
+            <!-- <div class="px-3 mt-6">
+                <div class="space-y-2">
+                    <button onclick="startLive()"
+                        class="w-full flex items-center justify-center gap-2 px-3 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg transition font-medium text-sm">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z">
+                            </path>
+                        </svg>
+                        Start Live Cam
+                    </button>
+                    <button onclick="stopSystem()"
+                        class="w-full flex items-center justify-center gap-2 px-3 py-2 bg-rose-600 hover:bg-rose-700 text-white rounded-lg transition font-medium text-sm">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M9 10a1 1 0 011-1h4a1 1 0 011 1v4a1 1 0 01-1 1h-4a1 1 0 01-1-1v-4z"></path>
+                        </svg>
+                        Stop System
+                    </button>
+                </div>
+            </div> -->
+
+            <div class="absolute bottom-4 left-4 right-4">
+                <div class="p-3 rounded-xl bg-slate-800/50 mb-3 border border-slate-700">
+                    <p class="text-xs text-slate-400">Logged in as</p>
+                    <p class="text-sm text-white font-medium truncate" id="userName">User</p>
+                </div>
+                <button onclick="API.logout()"
+                    class="w-full py-2 px-4 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 text-sm font-medium transition flex items-center justify-center gap-2">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1">
+                        </path>
+                    </svg>
+                    Logout
+                </button>
+            </div>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="ml-64 flex-1 p-8">
+            <div class="max-w-7xl mx-auto">
+                <!-- Header -->
+                <div class="flex justify-between items-end mb-8">
+                    <div>
+                        <h1 class="text-3xl font-bold text-white tracking-tight">Safety Dashboard</h1>
+                        <p class="text-slate-400 mt-2">Real-time risk analytics and hazard mapping</p>
+                    </div>
+                    <div class="flex gap-2">
+                        <span
+                            class="px-3 py-1 rounded-full bg-emerald-500/10 text-emerald-400 text-xs font-bold border border-emerald-500/20">SYSTEM
+                            ONLINE</span>
+                    </div>
+                </div>
+
+                <!-- Three Columns Grid -->
+                <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
+
+                    <!-- Risk Score Card -->
+                    <div class="bg-slate-800 border border-slate-700 rounded-2xl p-6 relative overflow-hidden">
+                        <div class="absolute top-0 right-0 p-4 opacity-10">
+                            <svg class="w-32 h-32 text-indigo-500" fill="currentColor" viewBox="0 0 24 24">
+                                <path
+                                    d="M12 2L2 22h20L12 2zm0 3.5L18.5 19H5.5L12 5.5zM11 10v4h2v-4h-2zm0 6v2h2v-2h-2z" />
+                            </svg>
+                        </div>
+                        <h3 class="text-slate-400 font-medium text-sm text-transform uppercase tracking-wider mb-2">
+                            Driver Risk Score</h3>
+                        <div class="flex items-end gap-3">
+                            <span class="text-5xl font-bold text-white" id="avgRiskScore">0.0</span>
+                            <span class="text-lg text-emerald-400 font-medium mb-1" id="riskLabel">LOW</span>
+                        </div>
+                        <div class="w-full bg-slate-700 h-2 rounded-full mt-4 overflow-hidden">
+                            <div class="bg-gradient-to-r from-emerald-500 via-yellow-500 to-rose-500 h-full w-[0%]"
+                                id="riskBar"></div>
+                        </div>
+                        <p class="text-xs text-slate-400 mt-2">Based on speed, lane deviations, and harsh braking</p>
+                    </div>
+
+                    <!-- Events Count -->
+                    <div class="bg-slate-800 border border-slate-700 rounded-2xl p-6">
+                        <h3 class="text-slate-400 font-medium text-sm btn-text uppercase tracking-wider mb-4">Detection
+                            Events Today</h3>
+                        <div class="grid grid-cols-2 gap-4">
+                            <div>
+                                <p class="text-3xl font-bold text-white" id="countHazards">0</p>
+                                <p class="text-xs text-slate-500 mt-1">Road Hazards</p>
+                            </div>
+                            <div>
+                                <p class="text-3xl font-bold text-white" id="countPotholes">0</p>
+                                <p class="text-xs text-slate-500 mt-1">Potholes</p>
+                            </div>
+                            <div>
+                                <p class="text-3xl font-bold text-white" id="countViolations">0</p>
+                                <p class="text-xs text-slate-500 mt-1">Rule Violations</p>
+                            </div>
+                            <div>
+                                <p class="text-3xl font-bold text-white text-indigo-400" id="totalEvents">0</p>
+                                <p class="text-xs text-indigo-400/70 mt-1">Total Signals</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Map Card -->
+                    <div class="bg-slate-800 border border-slate-700 rounded-2xl overflow-hidden row-span-2">
+                        <!-- Map toolbar -->
+                        <div class="flex items-center justify-between px-4 pt-3 pb-2 border-b border-slate-700">
+                            <p class="text-xs font-semibold text-slate-300 uppercase tracking-wider">Pothole Map</p>
+                            <div class="flex items-center gap-2">
+                                <button id="addModeBtn" onclick="toggleAddMode()"
+                                    class="text-xs px-3 py-1 rounded-lg bg-slate-700 hover:bg-amber-500 hover:text-black text-slate-300 font-semibold transition border border-slate-600"
+                                    title="Click to enable drop-pin mode, then click anywhere on the map">
+                                    + Drop Pin
+                                </button>
+                                <span id="mapModeLabel" class="text-xs text-slate-500 hidden">Click map to place
+                                    pin</span>
+                            </div>
+                        </div>
+                        <!-- Legend -->
+                        <div class="flex items-center gap-4 px-4 py-1.5 bg-slate-900/40 text-xs text-slate-400">
+                            <span class="flex items-center gap-1"><span
+                                    class="inline-block w-2.5 h-2.5 rounded-full bg-yellow-400"></span>Low</span>
+                            <span class="flex items-center gap-1"><span
+                                    class="inline-block w-2.5 h-2.5 rounded-full bg-orange-400"></span>Medium</span>
+                            <span class="flex items-center gap-1"><span
+                                    class="inline-block w-2.5 h-2.5 rounded-full bg-rose-500"></span>High</span>
+                            <span class="ml-auto text-slate-600" id="pinCount">0 pins</span>
+                        </div>
+                        <div id="map" class="rounded-none" style="height:280px;"></div>
+                    </div>
+
+                    <!-- Recent Activity List (Span 2 cols) -->
+                    <div class="lg:col-span-2 bg-slate-800 border border-slate-700 rounded-2xl p-6 overflow-hidden">
+                        <h3 class="text-white font-bold mb-4 flex items-center gap-2">
+                            <span class="w-2 h-2 rounded-full bg-indigo-500 animate-pulse"></span>
+                            Recent Fusion Events
+                        </h3>
+
+                        <div id="statusMessage" class="mb-2 text-sm text-emerald-400 font-medium hidden"></div>
+                        <div class="overflow-x-auto">
+                            <table class="w-full">
+                                <thead>
+                                    <tr class="text-left border-b border-slate-700">
+                                        <th class="pb-3 text-xs font-semibold text-slate-500 uppercase">Time</th>
+                                        <th class="pb-3 text-xs font-semibold text-slate-500 uppercase">Type</th>
+                                        <th class="pb-3 text-xs font-semibold text-slate-500 uppercase">Risk Level</th>
+                                        <th class="pb-3 text-xs font-semibold text-slate-500 uppercase">Evidence</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="eventsTable" class="text-sm text-slate-300">
+                                    <!-- Populated by JS -->
+                                    <tr>
+                                        <td colspan="4" class="py-4 text-center text-slate-500">Loading events...</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- ── Smart Route Planner ─────────────────────────────────────── -->
+                <div class="bg-slate-800 border border-slate-700 rounded-2xl mt-6 overflow-hidden">
+                    <!-- Header -->
+                    <div class="flex items-center justify-between px-6 py-4 border-b border-slate-700">
+                        <h3 class="text-white font-bold flex items-center gap-2">
+                            <svg class="w-5 h-5 text-indigo-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7"/>
+                            </svg>
+                            Smart Route Planner
+                        </h3>
+                        <div class="flex items-center gap-2">
+                            <span id="routeStatus" class="text-xs text-slate-400"></span>
+                            <button onclick="clearRoute()" class="text-xs px-3 py-1.5 rounded-lg bg-slate-700 hover:bg-slate-600 text-slate-300 font-medium transition">Clear</button>
+                        </div>
+                    </div>
+
+                    <div class="p-6">
+                        <!-- Address search inputs -->
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-4">
+                            <!-- Origin -->
+                            <div class="relative">
+                                <span class="absolute left-3 top-1/2 -translate-y-1/2 w-2.5 h-2.5 rounded-full bg-emerald-400 pointer-events-none block"></span>
+                                <input id="routeOrigin" type="text" autocomplete="off"
+                                    placeholder="Origin — type a place or address"
+                                    class="w-full bg-slate-900 border border-slate-700 text-white text-sm rounded-xl pl-8 pr-20 py-3 focus:border-indigo-500 outline-none"
+                                    oninput="debounceSuggest('routeOrigin','routeOriginSug')"
+                                    onkeydown="if(event.key==='Enter')selectSugFirst('routeOriginSug','routeOrigin')">
+                                <button onclick="useMyLocation()"
+                                    class="absolute right-2 top-1/2 -translate-y-1/2 text-xs px-2 py-1 rounded-lg bg-slate-700 hover:bg-indigo-600 text-slate-300 hover:text-white font-medium transition">
+                                    📍 Me
+                                </button>
+                                <ul id="routeOriginSug" class="absolute z-50 left-0 right-0 top-full mt-1 bg-slate-800 border border-slate-700 rounded-xl shadow-2xl max-h-48 overflow-y-auto" style="display:none"></ul>
+                            </div>
+                            <!-- Destination -->
+                            <div class="relative">
+                                <span class="absolute left-3 top-1/2 -translate-y-1/2 w-2.5 h-2.5 rounded-full bg-rose-400 pointer-events-none block"></span>
+                                <input id="routeDest" type="text" autocomplete="off"
+                                    placeholder="Destination — type a place or address"
+                                    class="w-full bg-slate-900 border border-slate-700 text-white text-sm rounded-xl pl-8 pr-3 py-3 focus:border-indigo-500 outline-none"
+                                    oninput="debounceSuggest('routeDest','routeDestSug')"
+                                    onkeydown="if(event.key==='Enter')selectSugFirst('routeDestSug','routeDest')">
+                                <ul id="routeDestSug" class="absolute z-50 left-0 right-0 top-full mt-1 bg-slate-800 border border-slate-700 rounded-xl shadow-2xl max-h-48 overflow-y-auto" style="display:none"></ul>
+                            </div>
+                        </div>
+
+                        <!-- Vehicle type selector + Get Routes button -->
+                        <div class="flex flex-wrap items-center gap-3 mb-5">
+                            <p class="text-xs text-slate-400 font-semibold uppercase tracking-wider">Vehicle:</p>
+                            <div class="flex gap-1.5">
+                                <button onclick="setVehicle(this,60)" class="vt text-xs px-3 py-1.5 rounded-lg font-medium transition bg-indigo-600 text-white">🚗 Car</button>
+                                <button onclick="setVehicle(this,55)" class="vt text-xs px-3 py-1.5 rounded-lg font-medium transition bg-slate-700 text-slate-300 hover:bg-slate-600">🏍 Bike</button>
+                                <button onclick="setVehicle(this,45)" class="vt text-xs px-3 py-1.5 rounded-lg font-medium transition bg-slate-700 text-slate-300 hover:bg-slate-600">🚚 Truck</button>
+                                <button onclick="setVehicle(this,35)" class="vt text-xs px-3 py-1.5 rounded-lg font-medium transition bg-slate-700 text-slate-300 hover:bg-slate-600">🚌 Bus</button>
+                            </div>
+                            <button onclick="planRoute()"
+                                class="ml-auto flex items-center gap-2 px-5 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-semibold text-sm transition">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                        d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/>
+                                </svg>
+                                Get Routes
+                            </button>
+                        </div>
+
+                        <!-- Loading spinner -->
+                        <div id="routeLoading" class="flex items-center gap-3 pb-4" style="display:none">
+                            <div class="w-5 h-5 rounded-full border-2 border-indigo-500 border-t-transparent animate-spin"></div>
+                            <span class="text-sm text-slate-400">Calculating best routes…</span>
+                        </div>
+
+                        <!-- Route comparison cards -->
+                        <div id="routeCards" class="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4" style="display:none">
+                            <!-- Route A: Fastest -->
+                            <div id="cardFast"
+                                class="relative rounded-xl border-2 border-indigo-500/50 bg-slate-900/70 p-4 cursor-pointer hover:border-indigo-500 transition"
+                                onclick="selectRoute('fast')">
+                                <span class="absolute top-3 right-3 text-xs px-2 py-0.5 rounded-full bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 font-semibold">FASTEST</span>
+                                <p class="text-xs text-slate-500 font-semibold uppercase mb-3">Route A</p>
+                                <div class="grid grid-cols-2 gap-y-2 text-sm">
+                                    <div><p class="text-xs text-slate-500">Distance</p><p class="font-bold text-white" id="fastDist">—</p></div>
+                                    <div><p class="text-xs text-slate-500">Duration</p><p class="font-bold text-white" id="fastDur">—</p></div>
+                                    <div><p class="text-xs text-slate-500">ETA</p><p class="font-bold text-indigo-300" id="fastETA">—</p></div>
+                                    <div><p class="text-xs text-slate-500">Potholes</p><p class="font-bold" id="fastPH">—</p></div>
+                                </div>
+                                <p id="fastNote" class="mt-2 text-xs text-amber-400 hidden">⚠ Road quality penalty applied</p>
+                            </div>
+                            <!-- Route B: Safest -->
+                            <div id="cardSafe"
+                                class="relative rounded-xl border-2 border-emerald-500/40 bg-slate-900/70 p-4 cursor-pointer hover:border-emerald-500 transition"
+                                onclick="selectRoute('safe')">
+                                <span class="absolute top-3 right-3 text-xs px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 font-semibold">SAFEST</span>
+                                <p class="text-xs text-slate-500 font-semibold uppercase mb-3">Route B</p>
+                                <div class="grid grid-cols-2 gap-y-2 text-sm">
+                                    <div><p class="text-xs text-slate-500">Distance</p><p class="font-bold text-white" id="safeDist">—</p></div>
+                                    <div><p class="text-xs text-slate-500">Duration</p><p class="font-bold text-white" id="safeDur">—</p></div>
+                                    <div><p class="text-xs text-slate-500">ETA</p><p class="font-bold text-emerald-300" id="safeETA">—</p></div>
+                                    <div><p class="text-xs text-slate-500">Potholes</p><p class="font-bold" id="safePH">—</p></div>
+                                </div>
+                                <p id="safeNote" class="mt-2 text-xs text-emerald-400 hidden">✔ Recommended — fewer road hazards</p>
+                            </div>
+                        </div>
+
+                        <!-- Step-by-step directions -->
+                        <div id="routeDetail" class="bg-slate-900/60 rounded-xl border border-slate-700 p-4" style="display:none">
+                            <div class="flex items-center justify-between mb-3">
+                                <p class="text-xs font-semibold text-slate-300 uppercase tracking-wider" id="routeDetailLabel">Directions</p>
+                                <span class="text-xs text-slate-500" id="routeDetailSteps"></span>
+                            </div>
+                            <div id="routeSteps" class="space-y-0.5 max-h-44 overflow-y-auto text-xs"></div>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+        </main>
+    </div>
+
+    <!-- Scripts -->
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+        integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+    <script src="../js/api.js"></script>
+    <script>
+        // ── Map setup ─────────────────────────────────────────────────────────
+        const map = L.map('map').setView([9.6615, 80.0255], 12);
+        
+        // ── Street map layer (like Google Maps) ────────────────────────────
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '© OpenStreetMap contributors',
+            subdomains: 'abc', maxZoom: 20, maxNativeZoom: 19
+        }).addTo(map);
+        
+        // ── Dark mode alternative (kept as option) ─────────────────────────
+        // L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+        //     attribution: '&copy; OpenStreetMap contributors &copy; CARTO',
+        //     subdomains: 'abcd', maxZoom: 20
+        // }).addTo(map);
+
+        let addMode = false;
+        const mapMarkers = {};   // id -> { marker, data }
+
+        function markerColor(severity) {
+            if (severity > 0.7) return '#f43f5e';
+            if (severity > 0.4) return '#fb923c';
+            return '#fbbf24';
+        }
+        function markerRadius(severity) { return 5 + Math.round(severity * 5); }
+
+        // Build popup HTML for a pothole marker
+        function popupHtml(p) {
+            const ts = p.timestamp ? new Date(p.timestamp * 1000).toLocaleString() : '';
+            return `
+                <div style="min-width:180px">
+                    <strong style="font-size:0.85rem">Pothole #${p.id}</strong>
+                    <br><span style="font-size:0.75rem;color:#94a3b8">${ts}</span>
+                    ${p.vehicle_id ? `<br><span style="font-size:0.72rem;color:#94a3b8">Vehicle: ${p.vehicle_id}</span>` : ''}
+                    <br>
+                    <label style="font-size:0.72rem;color:#94a3b8">Severity:&nbsp;
+                        <input id="sev_${p.id}" type="range" min="0" max="1" step="0.05"
+                            value="${p.severity.toFixed(2)}"
+                            style="width:90px;vertical-align:middle;accent-color:#f59e0b">
+                        <span id="sevVal_${p.id}" style="color:#fbbf24">${p.severity.toFixed(2)}</span>
+                    </label>
+                    <br>
+                    <button class="map-popup-btn save" onclick="savePin(${p.id})">Save</button>
+                    <button class="map-popup-btn del"  onclick="deletePin(${p.id})">Delete</button>
+                </div>`;
+        }
+
+        function addMarkerToMap(p) {
+            if (p.latitude == null || p.longitude == null) return;   // no GPS
+            const m = L.circleMarker([p.latitude, p.longitude], {
+                radius: markerRadius(p.severity),
+                fillColor: markerColor(p.severity),
+                color: '#0f172a', weight: 1.5,
+                opacity: 1, fillOpacity: 0.9
+            }).addTo(map);
+
+            m.bindPopup(popupHtml(p), { maxWidth: 240 });
+
+            // Wire up the severity slider after popup opens
+            m.on('popupopen', () => {
+                const sl = document.getElementById(`sev_${p.id}`);
+                const vl = document.getElementById(`sevVal_${p.id}`);
+                if (sl && vl) {
+                    sl.addEventListener('input', () => {
+                        vl.textContent = parseFloat(sl.value).toFixed(2);
+                    });
+                }
+            });
+
+            mapMarkers[p.id] = { marker: m, data: p };
+        }
+
+        async function deletePin(id) {
+            if (!confirm('Delete this pothole pin?')) return;
+            const res = await fetch(`/api/potholes/${id}`, {
+                method: 'DELETE',
+                headers: { 'Authorization': `Bearer ${API.getToken()}` }
+            });
+            const data = await res.json();
+            if (data.ok) {
+                if (mapMarkers[id]) {
+                    map.removeLayer(mapMarkers[id].marker);
+                    delete mapMarkers[id];
+                }
+                updatePinCount();
+            }
+        }
+
+        async function savePin(id) {
+            const sl = document.getElementById(`sev_${id}`);
+            const severity = sl ? parseFloat(sl.value) : mapMarkers[id]?.data.severity;
+            const entry = mapMarkers[id];
+            if (!entry) return;
+
+            const res = await fetch(`/api/potholes/${id}`, {
+                method: 'PATCH',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${API.getToken()}`
+                },
+                body: JSON.stringify({
+                    severity,
+                    lat: entry.data.latitude, lon: entry.data.longitude
+                })
+            });
+            const data = await res.json();
+            if (data.ok) {
+                // Update marker colour/size
+                entry.marker.setStyle({
+                    fillColor: markerColor(severity),
+                    radius: markerRadius(severity)
+                });
+                entry.data.severity = severity;
+                entry.marker.closePopup();
+            }
+        }
+
+        function updatePinCount() {
+            const n = Object.keys(mapMarkers).length;
+            document.getElementById('pinCount').textContent = `${n} pin${n === 1 ? '' : 's'}`;
+        }
+
+        function toggleAddMode() {
+            addMode = !addMode;
+            const btn = document.getElementById('addModeBtn');
+            const label = document.getElementById('mapModeLabel');
+            if (addMode) {
+                btn.classList.add('active');
+                map.getContainer().style.cursor = 'crosshair';
+                label.classList.remove('hidden');
+            } else {
+                btn.classList.remove('active');
+                map.getContainer().style.cursor = '';
+                label.classList.add('hidden');
+            }
+        }
+
+        // Drop a pin on map click when addMode is on
+        map.on('click', async function (e) {
+            if (!addMode) return;
+            const { lat, lng } = e.latlng;
+            const vehicle_id = localStorage.getItem('currentVehicle') || 'manual';
+
+            const res = await fetch('/api/potholes/add', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${API.getToken()}`
+                },
+                body: JSON.stringify({ lat, lon: lng, severity: 0.5, vehicle_id })
+            });
+            const data = await res.json();
+            if (data.ok) {
+                const newPin = {
+                    id: data.id, latitude: lat, longitude: lng,
+                    severity: data.severity, timestamp: Date.now() / 1000,
+                    vehicle_id
+                };
+                addMarkerToMap(newPin);
+                mapMarkers[data.id].marker.openPopup();
+                updatePinCount();
+                // Turn off add mode after placing pin
+                toggleAddMode();
+            }
+        });
+
+        // ── Dashboard data ────────────────────────────────────────────────────
+        async function initDashboard() {
+            const token = API.getToken();
+            const userName = localStorage.getItem('userName') || 'User';
+            if (!token) { window.location.href = '../index.html'; return; }
+            document.getElementById('userName').textContent = userName;
+            try {
+                const events = await API.getUserEvents();
+                const potholes = await API.getPotholes();
+                updateDashboard(events, potholes);
+            } catch (err) { console.error('Dashboard error:', err); }
+        }
+
+        function updateDashboard(events, potholes) {
+            // 1. Map pins
+            potholes.forEach(p => addMarkerToMap(p));
+            updatePinCount();
+            const firstGps = potholes.find(p => p.latitude != null && p.longitude != null);
+            if (firstGps) map.setView([firstGps.latitude, firstGps.longitude], 15);
+
+            // 2. Counts
+            let hCount = 0, pCount = 0, vCount = 0;
+            events.forEach(e => {
+                const t = e.type.toLowerCase();
+                if (t.includes('hazard')) hCount++;
+                else if (t.includes('pothole')) pCount++;
+                else vCount++;
+            });
+            // Show confirmed mapped potholes (potholes table) if available,
+            // otherwise fall back to event row count.
+            document.getElementById('countHazards').textContent = hCount;
+            document.getElementById('countPotholes').textContent = potholes.length || pCount;
+            document.getElementById('countViolations').textContent = vCount;
+            document.getElementById('totalEvents').textContent = events.length;
+
+            // 3. Risk score
+            const risks = events.map(e => {
+                if (e.risk_level === 'CRITICAL') return 0.9;
+                if (e.risk_level === 'HIGH') return 0.7;
+                if (e.risk_level === 'MEDIUM') return 0.5;
+                return 0.2;
+            });
+            const avgRisk = risks.length ? risks.reduce((a, b) => a + b, 0) / risks.length : 0.0;
+            document.getElementById('avgRiskScore').textContent = avgRisk.toFixed(2);
+            document.getElementById('riskBar').style.width = `${avgRisk * 100}%`;
+            const rl = document.getElementById('riskLabel');
+            if (avgRisk > 0.8) { rl.textContent = 'CRITICAL'; rl.className = 'text-xl font-bold text-rose-500 mb-1'; }
+            else if (avgRisk > 0.6) { rl.textContent = 'HIGH'; rl.className = 'text-xl font-bold text-orange-500 mb-1'; }
+            else if (avgRisk > 0.3) { rl.textContent = 'MEDIUM'; rl.className = 'text-xl font-bold text-yellow-400 mb-1'; }
+            else { rl.textContent = 'LOW'; rl.className = 'text-xl font-bold text-emerald-400 mb-1'; }
+
+            // 4. Events table
+            const tbody = document.getElementById('eventsTable');
+            tbody.innerHTML = '';
+            if (!events.length) {
+                tbody.innerHTML = '<tr><td colspan="4" class="py-4 text-center text-slate-500">No events yet</td></tr>';
+                return;
+            }
+            events.slice(0, 10).forEach(e => {
+                const tr = document.createElement('tr');
+                tr.className = 'border-b border-slate-700 hover:bg-slate-700/50 transition';
+                let tc = 'text-slate-300';
+                if (e.type === 'hazard') tc = 'text-orange-400';
+                if (e.type === 'pothole') tc = 'text-yellow-400';
+                if (e.type === 'lane_departure') tc = 'text-rose-400';
+                let rb = `<span class="px-2 py-0.5 rounded text-xs font-bold bg-slate-700 text-slate-400">LOW</span>`;
+                if (e.risk_level === 'HIGH') rb = `<span class="px-2 py-0.5 rounded text-xs font-bold bg-orange-500/20 text-orange-400 border border-orange-500/30">HIGH</span>`;
+                if (e.risk_level === 'CRITICAL') rb = `<span class="px-2 py-0.5 rounded text-xs font-bold bg-rose-500/20 text-rose-400 border border-rose-500/30">CRITICAL</span>`;
+                tr.innerHTML = `
+                    <td class="py-3 font-mono text-xs text-slate-400">${new Date(e.ts).toLocaleTimeString()}</td>
+                    <td class="py-3 font-medium ${tc}">${e.type.replace('_', ' ').toUpperCase()}</td>
+                    <td class="py-3">${rb}</td>
+                    <td class="py-3">${e.image_path ? `<a href="http://localhost:5000/evidence/${e.image_path}" target="_blank" class="text-indigo-400 hover:text-indigo-300 text-xs underline">View</a>` : '-'}</td>`;
+                tbody.appendChild(tr);
+            });
+        }
+
+        initDashboard();
+        // Auto-refresh events + pothole map every 15 seconds
+        setInterval(async () => {
+            try {
+                const [events, potholes] = await Promise.all([
+                    API.getUserEvents(),
+                    API.getPotholes()
+                ]);
+
+                // Refresh map: add only newly-seen pins (skip ids already on map)
+                potholes.forEach(p => {
+                    if (!mapMarkers[p.id]) addMarkerToMap(p);
+                });
+                updatePinCount();
+
+                // Fit map to show all GPS potholes
+                const gpsPts = potholes.filter(p => p.latitude != null && p.longitude != null);
+                if (gpsPts.length > 0 && Object.keys(mapMarkers).length > 0) {
+                    const pts = Object.values(mapMarkers).map(m => m.marker.getLatLng());
+                    if (pts.length > 0) map.fitBounds(L.latLngBounds(pts), { maxZoom: 16, padding: [20, 20] });
+                }
+
+                // Re-render events table
+                const tbody = document.getElementById('eventsTable');
+                let hCount = 0, pCount = 0, vCount = 0;
+                events.forEach(e => {
+                    const t = (e.type || '').toLowerCase();
+                    if (t.includes('hazard')) hCount++;
+                    else if (t.includes('pothole')) pCount++;
+                    else vCount++;
+                });
+                document.getElementById('countHazards').textContent = hCount;
+                document.getElementById('countPotholes').textContent = potholes.length || pCount;
+                document.getElementById('countViolations').textContent = vCount;
+                document.getElementById('totalEvents').textContent = events.length;
+                tbody.innerHTML = '';
+                if (!events.length) {
+                    tbody.innerHTML = '<tr><td colspan="4" class="py-4 text-center text-slate-500">No events yet</td></tr>';
+                    return;
+                }
+                events.slice(0, 10).forEach(e => {
+                    const tr = document.createElement('tr');
+                    tr.className = 'border-b border-slate-700 hover:bg-slate-700/50 transition';
+                    let tc = 'text-slate-300';
+                    if (e.type === 'hazard') tc = 'text-orange-400';
+                    if (e.type === 'pothole') tc = 'text-yellow-400';
+                    if (e.type === 'lane_departure') tc = 'text-rose-400';
+                    let rb = `<span class="px-2 py-0.5 rounded text-xs font-bold bg-slate-700 text-slate-400">LOW</span>`;
+                    if (e.risk_level === 'HIGH') rb = `<span class="px-2 py-0.5 rounded text-xs font-bold bg-orange-500/20 text-orange-400 border border-orange-500/30">HIGH</span>`;
+                    if (e.risk_level === 'CRITICAL') rb = `<span class="px-2 py-0.5 rounded text-xs font-bold bg-rose-500/20 text-rose-400 border border-rose-500/30">CRITICAL</span>`;
+                    tr.innerHTML = `
+                        <td class="py-3 font-mono text-xs text-slate-400">${new Date(e.ts).toLocaleTimeString()}</td>
+                        <td class="py-3 font-medium ${tc}">${(e.type || '').replace('_', ' ').toUpperCase()}</td>
+                        <td class="py-3">${rb}</td>
+                        <td class="py-3">${e.image_path ? `<a href="http://localhost:5000/evidence/${e.image_path}" target="_blank" class="text-indigo-400 hover:text-indigo-300 text-xs underline">View</a>` : '-'}</td>`;
+                    tbody.appendChild(tr);
+                });
+            } catch (_) {}
+        }, 15000);
+        // ── Smart Route Planner ────────────────────────────────────────────────
+        let routePolylines  = { fast: null, safe: null };
+        let originMarker    = null;
+        let destMarker      = null;
+        let vehicleSpeedKmh = 60;
+        let resolvedOrigin  = null;
+        let resolvedDest    = null;
+        let routeData       = { fast: null, safe: null };
+        let suggTimers      = {};
+
+        function setVehicle(el, spd) {
+            document.querySelectorAll('.vt').forEach(b => {
+                b.className = 'vt text-xs px-3 py-1.5 rounded-lg font-medium transition bg-slate-700 text-slate-300 hover:bg-slate-600';
+            });
+            el.className = 'vt text-xs px-3 py-1.5 rounded-lg font-medium transition bg-indigo-600 text-white';
+            vehicleSpeedKmh = spd;
+        }
+
+        // ── Nominatim geocoding autocomplete ─────────────────────────────────
+        function debounceSuggest(inputId, listId) {
+            clearTimeout(suggTimers[inputId]);
+            suggTimers[inputId] = setTimeout(() => fetchSuggestions(inputId, listId), 350);
+        }
+
+        async function fetchSuggestions(inputId, listId) {
+            const q  = document.getElementById(inputId).value.trim();
+            const ul = document.getElementById(listId);
+            if (q.length < 3) { ul.style.display = 'none'; return; }
+            try {
+                const items = await fetch(
+                    `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(q)}&format=json&limit=5`,
+                    { headers: { 'Accept-Language': 'en' } }
+                ).then(r => r.json());
+                ul.innerHTML = '';
+                if (!items.length) { ul.style.display = 'none'; return; }
+                items.forEach(item => {
+                    const li = document.createElement('li');
+                    li.className = 'px-3 py-2 text-xs text-slate-300 hover:bg-slate-700 cursor-pointer border-b border-slate-700/40 last:border-none';
+                    li.textContent = item.display_name;   // text content is safe — no XSS
+                    li.addEventListener('mousedown', e => {
+                        e.preventDefault();
+                        document.getElementById(inputId).value = item.display_name;
+                        const pt = { lat: parseFloat(item.lat), lon: parseFloat(item.lon), name: item.display_name };
+                        if (inputId === 'routeOrigin') resolvedOrigin = pt; else resolvedDest = pt;
+                        ul.style.display = 'none';
+                    });
+                    ul.appendChild(li);
+                });
+                ul.style.display = 'block';
+            } catch { ul.style.display = 'none'; }
+        }
+
+        function selectSugFirst(listId, inputId) {
+            const li = document.getElementById(listId)?.querySelector('li');
+            if (li) li.dispatchEvent(new MouseEvent('mousedown'));
+        }
+
+        document.addEventListener('click', e => {
+            ['routeOriginSug', 'routeDestSug'].forEach(id => {
+                const el = document.getElementById(id);
+                if (el && !el.contains(e.target)) el.style.display = 'none';
+            });
+        });
+
+        function useMyLocation() {
+            if (!navigator.geolocation) { alert('Geolocation not supported.'); return; }
+            navigator.geolocation.getCurrentPosition(pos => {
+                const { latitude: lat, longitude: lon } = pos.coords;
+                resolvedOrigin = { lat, lon, name: 'My Location' };
+                document.getElementById('routeOrigin').value = `My Location (${lat.toFixed(5)}, ${lon.toFixed(5)})`;
+            }, () => alert('Could not get location.'));
+        }
+
+        async function geocodeFallback(inputId) {
+            const q = document.getElementById(inputId).value.trim();
+            if (!q) return null;
+            const m = q.match(/^(-?\d+\.?\d*)\s*,\s*(-?\d+\.?\d*)$/);
+            if (m) return { lat: parseFloat(m[1]), lon: parseFloat(m[2]), name: q };
+            try {
+                const d = await fetch(
+                    `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(q)}&format=json&limit=1`,
+                    { headers: { 'Accept-Language': 'en' } }
+                ).then(r => r.json());
+                if (!d.length) return null;
+                return { lat: parseFloat(d[0].lat), lon: parseFloat(d[0].lon), name: d[0].display_name };
+            } catch { return null; }
+        }
+
+        // ── Route scoring (pothole penalty) ──────────────────────────────────
+        function scoreRoute(coords) {
+            let count = 0, penalty = 0;
+            Object.values(mapMarkers).forEach(({ data: p }) => {
+                if (coords.some(([rlat, rlon]) => haversineM(p.latitude, p.longitude, rlat, rlon) < 120)) {
+                    count++;
+                    penalty += p.severity > 0.66 ? 35 : p.severity > 0.33 ? 18 : 6;
+                }
+            });
+            return { count, penalty };
+        }
+
+        function haversineM(lat1, lon1, lat2, lon2) {
+            const R = 6_371_000, dLat = (lat2-lat1)*Math.PI/180, dLon = (lon2-lon1)*Math.PI/180;
+            const a = Math.sin(dLat/2)**2 + Math.cos(lat1*Math.PI/180)*Math.cos(lat2*Math.PI/180)*Math.sin(dLon/2)**2;
+            return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+        }
+
+        // ── Main planning function ────────────────────────────────────────────
+        async function planRoute() {
+            let origin = resolvedOrigin || await geocodeFallback('routeOrigin');
+            let dest   = resolvedDest   || await geocodeFallback('routeDest');
+            if (!origin) { setRouteStatus('⚠ Could not locate origin.'); return; }
+            if (!dest)   { setRouteStatus('⚠ Could not locate destination.'); return; }
+            resolvedOrigin = origin; resolvedDest = dest;
+
+            clearRoute();
+            document.getElementById('routeLoading').style.display = 'flex';
+            setRouteStatus('');
+
+            try {
+                const url  = `https://router.project-osrm.org/route/v1/driving/` +
+                    `${origin.lon},${origin.lat};${dest.lon},${dest.lat}` +
+                    `?overview=full&geometries=geojson&alternatives=true&steps=true`;
+                const data = await fetch(url).then(r => r.json());
+                document.getElementById('routeLoading').style.display = 'none';
+
+                if (!data.routes?.length) { setRouteStatus('⚠ No route found.'); return; }
+
+                const scored = data.routes.map(r => {
+                    const coords = r.geometry.coordinates.map(([lo, la]) => [la, lo]);
+                    return { r, coords, ...scoreRoute(coords) };
+                });
+
+                // Fastest = lowest OSRM duration; safest = fewest potholes, then shortest  
+                const fastest = [...scored].sort((a, b) => a.r.duration - b.r.duration)[0];
+                const safest  = [...scored].sort((a, b) =>
+                    a.count !== b.count ? a.count - b.count : a.r.duration - b.r.duration)[0];
+
+                routeData = { fast: fastest, safe: safest };
+
+                // Draw both routes with enhanced visualization
+                ['fast', 'safe'].forEach(k => {
+                    const d = k === 'fast' ? fastest : safest;
+                    if (routePolylines[k]) map.removeLayer(routePolylines[k]);
+                    
+                    // Main route line
+                    routePolylines[k] = L.polyline(d.coords, {
+                        color:     k === 'fast' ? '#6366f1' : '#10b981',
+                        weight:    k === 'fast' ? 5 : 4,
+                        opacity:   0.85,
+                        dashArray: k === 'safe' ? '9 5' : null,
+                        lineCap:   'round',
+                        lineJoin:  'round'
+                    }).addTo(map);
+                    
+                    // Add distance markers along the route (every 2km)
+                    const coords = d.coords;
+                    let accDist = 0;
+                    for (let i = 1; i < coords.length; i++) {
+                        accDist += haversineM(coords[i-1][0], coords[i-1][1], coords[i][0], coords[i][1]);
+                        if (accDist > 2000) {   // Every 2km
+                            const marker = L.circleMarker(coords[i], {
+                                radius: 4, fillColor: k === 'fast' ? '#6366f1' : '#10b981',
+                                color: '#fff', weight: 1, fillOpacity: 0.6, opacity: 0.4
+                            }).addTo(map);
+                            marker.setPopupContent(`${(accDist/1000).toFixed(1)} km`);
+                            accDist = 0;
+                        }
+                    }
+                });
+
+                // Place markers
+                if (originMarker) map.removeLayer(originMarker);
+                if (destMarker)   map.removeLayer(destMarker);
+                originMarker = L.circleMarker([origin.lat, origin.lon],
+                    { radius: 9, fillColor: '#22c55e', color: '#fff', weight: 2.5, fillOpacity: 1 })
+                    .addTo(map).bindPopup(`<b>Origin</b><br><small>${origin.name.split(',')[0]}</small>`);
+                destMarker = L.circleMarker([dest.lat, dest.lon],
+                    { radius: 9, fillColor: '#ef4444', color: '#fff', weight: 2.5, fillOpacity: 1 })
+                    .addTo(map).bindPopup(`<b>Destination</b><br><small>${dest.name.split(',')[0]}</small>`);
+
+                map.fitBounds(routePolylines.fast.getBounds(), { padding: [40, 40] });
+
+                // Add turn-by-turn waypoints on map (show key maneuvers)
+                const routeWithSteps = fastest;
+                if (routeWithSteps.r.legs && routeWithSteps.r.legs.length > 0) {
+                    let stepCount = 1;
+                    routeWithSteps.r.legs.forEach((leg, legIdx) => {
+                        if (leg.steps && leg.steps.length > 0) {
+                            // Sample ~5 instructions per leg to avoid too many markers
+                            const sampleRate = Math.max(1, Math.floor(leg.steps.length / 5));
+                            leg.steps.forEach((step, stepIdx) => {
+                                if (stepIdx % sampleRate === 0 && step.maneuver) {
+                                    const [lon, lat] = step.maneuver.location;
+                                    const dist = step.distance;
+                                    const maneuver = (step.maneuver.type || 'continue').replace(/-/g, ' ').toUpperCase();
+                                    const marker = L.circleMarker([lat, lon], {
+                                        radius: 5,
+                                        fillColor: '#a78bfa',
+                                        color: '#fff',
+                                        weight: 1.5,
+                                        fillOpacity: 0.7,
+                                        opacity: 0.8
+                                    }).addTo(map);
+                                    marker.bindPopup(`<small><b>${stepCount}.</b> ${maneuver}<br/>${(dist/1000).toFixed(2)} km</small>`, { closeButton: false });
+                                    stepCount++;
+                                }
+                            });
+                        }
+                    });
+                }
+
+                // Fill route info cards
+                fillCard('fast', fastest);
+                fillCard('safe', safest);
+                if (fastest.penalty > 0) document.getElementById('fastNote').classList.remove('hidden');
+                if (safest.count < fastest.count) document.getElementById('safeNote').classList.remove('hidden');
+
+                document.getElementById('routeCards').style.display = 'grid';
+                selectRoute('fast');
+
+            } catch (e) {
+                document.getElementById('routeLoading').style.display = 'none';
+                setRouteStatus('⚠ Routing error — check connection.');
+                console.error(e);
+            }
+        }
+
+        function fillCard(key, d) {
+            const adjSecs = d.r.duration + d.penalty;
+            const mins    = Math.round(adjSecs / 60);
+            const eta     = new Date(Date.now() + adjSecs * 1000);
+            document.getElementById(`${key}Dist`).textContent =
+                (d.r.distance / 1000).toFixed(1) + ' km';
+            document.getElementById(`${key}Dur`).textContent =
+                mins >= 60 ? `${Math.floor(mins/60)}h ${mins % 60}m` : `${mins} min`;
+            document.getElementById(`${key}ETA`).textContent =
+                eta.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+            const phEl = document.getElementById(`${key}PH`);
+            phEl.textContent = d.count;
+            phEl.style.color = d.count === 0 ? '#34d399' : d.count < 5 ? '#fbbf24' : '#f87171';
+        }
+
+        function selectRoute(key) {
+            document.getElementById('cardFast').style.borderColor =
+                key === 'fast' ? '#6366f1' : 'rgba(99,102,241,.2)';
+            document.getElementById('cardSafe').style.borderColor =
+                key === 'safe' ? '#10b981' : 'rgba(16,185,129,.18)';
+            if (routePolylines.fast) routePolylines.fast.setStyle({ opacity: key === 'fast' ? 0.95 : 0.2 });
+            if (routePolylines.safe) routePolylines.safe.setStyle({ opacity: key === 'safe' ? 0.95 : 0.2 });
+
+            const d = routeData[key];
+            if (!d) return;
+            const steps = d.r.legs?.[0]?.steps || [];
+            document.getElementById('routeDetailLabel').textContent =
+                key === 'fast' ? 'Route A — Fastest' : 'Route B — Safest';
+            document.getElementById('routeDetailSteps').textContent = `${steps.length} steps`;
+            document.getElementById('routeSteps').innerHTML = steps.length
+                ? steps.map((s, i) => `
+                    <div class="flex gap-2 py-1.5 border-b border-slate-800/80 last:border-0">
+                        <span class="text-slate-600 font-mono w-5 shrink-0 text-right">${i + 1}.</span>
+                        <span class="flex-1 text-slate-300">${s.name || 'Unnamed road'}</span>
+                        <span class="text-slate-500 shrink-0">${s.distance >= 1000 ? (s.distance/1000).toFixed(1)+'km' : Math.round(s.distance)+'m'}</span>
+                    </div>`).join('')
+                : '<p class="text-slate-500 text-xs py-2">No step details available.</p>';
+            document.getElementById('routeDetail').style.display = 'block';
+        }
+
+        function clearRoute() {
+            ['fast', 'safe'].forEach(k => {
+                if (routePolylines[k]) { map.removeLayer(routePolylines[k]); routePolylines[k] = null; }
+            });
+            if (originMarker) { map.removeLayer(originMarker); originMarker = null; }
+            if (destMarker)   { map.removeLayer(destMarker);   destMarker   = null; }
+            document.getElementById('routeCards').style.display  = 'none';
+            document.getElementById('routeDetail').style.display = 'none';
+            document.getElementById('routeLoading').style.display = 'none';
+            ['fastNote', 'safeNote'].forEach(id => document.getElementById(id)?.classList.add('hidden'));
+            resolvedOrigin = resolvedDest = null;
+            setRouteStatus('');
+        }
+
+        function setRouteStatus(msg) {
+            document.getElementById('routeStatus').textContent = msg;
+        }
+    </script>
+</body>
+
+</html>

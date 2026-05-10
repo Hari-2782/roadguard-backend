@@ -1,0 +1,280 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Hazard Map - Admin - Road Monitor</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="../css/styles.css">
+    <style>
+        .timeline-container {
+            position: relative;
+            height: 100px;
+            background: #1e293b;
+            border-radius: 8px;
+            margin: 20px 0;
+            display: flex;
+            align-items: center;
+            overflow-x: auto;
+            padding: 0 20px;
+        }
+        .timeline-line {
+            position: absolute;
+            top: 50%;
+            left: 20px;
+            right: 20px;
+            height: 4px;
+            background: #475569;
+            transform: translateY(-50%);
+        }
+        .timeline-marker {
+            position: absolute;
+            top: 50%;
+            width: 16px;
+            height: 16px;
+            background: #f59e0b; /* Amber for pothole */
+            border: 2px solid #fff;
+            border-radius: 50%;
+            transform: translate(-50%, -50%);
+            cursor: pointer;
+            transition: transform 0.2s;
+        }
+        .timeline-marker:hover {
+            transform: translate(-50%, -50%) scale(1.5);
+            z-index: 10;
+        }
+        .timeline-marker.sign-21 {
+            background: #3b82f6; /* Blue for signs */
+            border-radius: 0;
+            width: 12px;
+            height: 12px;
+            transform: translate(-50%, -50%) rotate(45deg);
+        }
+    </style>
+</head>
+<body class="bg-slate-900 min-h-screen">
+
+    <div class="flex">
+        <!-- Admin Sidebar -->
+        <aside class="sidebar w-64 min-h-screen p-4 fixed left-0 top-0">
+            <div class="flex items-center gap-3 mb-8 px-2">
+                <div class="w-10 h-10 bg-rose-600 rounded-xl flex items-center justify-center">
+                    <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z">
+                        </path>
+                    </svg>
+                </div>
+                <div>
+                    <h2 class="font-bold text-white">Road Monitor</h2>
+                    <p class="text-xs text-rose-400">Admin Portal</p>
+                </div>
+            </div>
+
+            <nav class="space-y-1">
+                <a href="dashboard.html" class="sidebar-link">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6">
+                        </path>
+                    </svg>
+                    <span>Dashboard</span>
+                </a>
+                <a href="users.html" class="sidebar-link">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z">
+                        </path>
+                    </svg>
+                    <span>Users</span>
+                </a>
+                <a href="vehicles.html" class="sidebar-link">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M9 17a2 2 0 11-4 0 2 2 0 014 0zM19 17a2 2 0 11-4 0 2 2 0 014 0z"></path>
+                    </svg>
+                    <span>Vehicles</span>
+                </a>
+                <a href="hazard_map.html" class="sidebar-link active">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
+                            d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z">
+                        </path>
+                    </svg>
+                    <span>Hazard Map</span>
+                </a>
+                <a href="calibration.html" class="sidebar-link">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z">
+                        </path>
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                    </svg>
+                    <span>Calibration</span>
+                </a>
+            </nav>
+
+            <div class="absolute bottom-4 left-4 right-4">
+                <div class="p-3 rounded-xl bg-rose-500/10 border border-rose-500/20 mb-3">
+                    <p class="text-xs text-rose-400">Admin Account</p>
+                    <p class="text-sm text-white font-medium">System Admin</p>
+                </div>
+                <button onclick="API.logout()" class="w-full btn btn-secondary text-sm">Logout</button>
+            </div>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="ml-64 flex-1 p-6">
+            <div class="max-w-6xl mx-auto">
+                <h1 class="text-2xl font-bold text-white mb-2">Road Condition Map</h1>
+                <p class="text-slate-400 mb-6">Visualizing potholes and signs along routes.</p>
+
+                <!-- Filters -->
+                <div class="bg-slate-800 p-4 rounded-xl mb-6 flex gap-4">
+                    <select id="vehicleSelect" class="bg-slate-700 text-white p-2 rounded border border-slate-600 w-64">
+                        <option value="">Select Vehicle...</option>
+                    </select>
+                    <button onclick="loadData()" class="bg-indigo-600 text-white px-4 py-2 rounded hover:bg-indigo-700">Load Route</button>
+                </div>
+
+                <!-- Visualization -->
+                <div class="bg-slate-800 p-6 rounded-xl mb-6">
+                    <h3 class="text-lg font-semibold text-white mb-4">Route Timeline (Simulated Map)</h3>
+                    <div class="timeline-container relative" id="timeline">
+                        <div class="timeline-line"></div>
+                        <!-- Markers injected here -->
+                    </div>
+                    <div class="flex gap-4 text-sm text-slate-400 mt-2">
+                        <div class="flex items-center gap-2"><div class="w-3 h-3 bg-amber-500 rounded-full"></div> Pothole (Hazard)</div>
+                        <div class="flex items-center gap-2"><div class="w-3 h-3 bg-blue-500 transform rotate-45"></div> Road Sign</div>
+                    </div>
+                </div>
+
+                <!-- Detail View -->
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6" id="detailSection" style="display:none;">
+                    <div class="bg-slate-800 p-6 rounded-xl">
+                        <h3 class="text-lg font-semibold text-white mb-4">Event Details</h3>
+                        <div id="eventDetails" class="text-slate-300">
+                            Select a marker to view details.
+                        </div>
+                    </div>
+                    <div class="bg-slate-800 p-6 rounded-xl">
+                        <h3 class="text-lg font-semibold text-white mb-4">Evidence</h3>
+                        <img id="evidenceImg" class="w-full rounded border border-slate-600 hidden" src="" alt="Evidence">
+                        <p id="noEvidence" class="text-slate-500 italic">No image available</p>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script src="../js/api.js"></script>
+    <script src="../js/utils.js"></script>
+    <script>
+        // Initialize
+        document.addEventListener('DOMContentLoaded', async () => {
+            if (!requireAuth('admin')) return;
+            
+            // Load ADMIN vehicles
+            try {
+                const vehicles = await API.getAdminVehicles();
+                const select = document.getElementById('vehicleSelect');
+                
+                if (vehicles.length === 0) {
+                     const opt = document.createElement('option');
+                     opt.textContent = "No vehicles found";
+                     select.appendChild(opt);
+                     return;
+                }
+
+                vehicles.forEach(v => {
+                    const opt = document.createElement('option');
+                    opt.value = v.id;
+                    const owner = v.owner_name ? ` - ${v.owner_name}` : (v.owner_email ? ` - ${v.owner_email}` : '');
+                    opt.textContent = `${v.label || 'Unnamed'} (${v.vehicle_id})${owner}`;
+                    select.appendChild(opt);
+                });
+                
+                if (vehicles.length > 0) {
+                    select.value = vehicles[0].id;
+                    loadData();
+                }
+            } catch (e) {
+                console.error(e);
+                Toast.error('Failed to load vehicles');
+            }
+        });
+
+        async function loadData() {
+            const vid = document.getElementById('vehicleSelect').value;
+            if (!vid) return;
+
+            try {
+                const events = await API.getVehicleEvents(vid, 500); 
+                renderTimeline(events);
+            } catch (e) {
+                console.error("Failed to load events", e);
+                Toast.error('Failed to load events');
+            }
+        }
+
+        function renderTimeline(events) {
+            const timeline = document.getElementById('timeline');
+            timeline.innerHTML = '<div class="timeline-line"></div>';
+
+            const mapEvents = events.filter(e => e.type === 'pothole' || e.type === 'sign_21' || e.type === 'sign_detected');
+            
+            if (mapEvents.length === 0) return;
+
+            mapEvents.sort((a, b) => new Date(a.ts) - new Date(b.ts));
+            
+            const startTime = new Date(mapEvents[0].ts).getTime();
+            const endTime = new Date(mapEvents[mapEvents.length - 1].ts).getTime();
+            const duration = endTime - startTime || 1;
+
+            mapEvents.forEach(e => {
+                const time = new Date(e.ts).getTime();
+                const pct = ((time - startTime) / duration) * 90 + 5; 
+
+                const isSign = e.type.startsWith('sign');
+                const marker = document.createElement('div');
+                marker.className = `timeline-marker ${isSign ? 'sign-21' : ''}`;
+                marker.style.left = `${pct}%`;
+                marker.title = `${e.type}: ${new Date(e.ts).toLocaleTimeString()}`;
+                marker.onclick = () => showDetail(e);
+                
+                timeline.appendChild(marker);
+            });
+        }
+
+        function showDetail(event) {
+            const section = document.getElementById('detailSection');
+            section.style.display = 'grid';
+            
+            const typeLabel = event.type.startsWith('sign') ? 'ROAD SIGN' : event.type.toUpperCase();
+
+            const details = document.getElementById('eventDetails');
+            details.innerHTML = `
+                <p><strong>Type:</strong> ${typeLabel}</p>
+                <p><strong>Time:</strong> ${new Date(event.ts).toLocaleString()}</p>
+                <p><strong>Details:</strong> ${event.details || 'N/A'}</p>
+                <p><strong>Confidence:</strong> ${event.value ? event.value.toFixed(2) : 'N/A'}</p>
+            `;
+
+            const img = document.getElementById('evidenceImg');
+            const noImg = document.getElementById('noEvidence');
+            
+            if (event.image_path) {
+                img.src = `../../evidence/${event.image_path.split('/').pop()}`; 
+                img.classList.remove('hidden');
+                noImg.classList.add('hidden');
+            } else {
+                img.classList.add('hidden');
+                noImg.classList.remove('hidden');
+            }
+        }
+    </script>
+</body>
+</html>

@@ -1,0 +1,126 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+
+# Virtual Environment
+venv/
+env/
+.venv/
+
+# Environment / secrets
+.env
+.env.*
+!.env.example
+
+# IDEs
+.vscode/
+.idea/
+*.swp
+*.swo
+.gemini/
+
+# Runtime databases (recreated by init_db)
+*.db
+*.db.bak
+
+# Keep backend DB snapshots only if you intentionally want local data in backend repo
+!backend/db/*.db
+!backend/database/*.db
+
+# Evidence images (generated at runtime)
+evidence/
+backend/evidence/*
+!backend/evidence/__init__.py
+
+# Upload folder (runtime)
+uploads/
+backend/uploads/*
+!backend/uploads/__init__.py
+
+# Generated output media
+backend/outputs/*
+!backend/outputs/__init__.py
+!backend/outputs/videos/
+backend/outputs/videos/*
+!backend/outputs/videos/__init__.py
+
+# Debug output files
+debug_log.txt
+debug_output*.txt
+test_*.txt
+verify_output.txt
+*_log.txt
+*_runtime.txt
+server_out.txt
+server_err.txt
+frontend_next_runtime.txt
+frontend_next_err_runtime.txt
+
+# Debug frame captures
+debug_frames_*/
+debug_*.jpg
+
+# Calibration backups
+calibration.json.bak
+calibration_perfect.json
+speed_calibration.json
+
+# ===== DATASETS (too large for GitHub) =====
+BDD100K/
+Road Traffic Sign In Sri Lanka.v4i.yolov8/
+custom_dataset/
+lane_annotations_yolo/
+lane_data_gen/
+lane_dataset/
+lane_only_dataset/
+signs_subset_yolov8/
+road_signboard_detection_dataset/
+lane_annotations.csv
+
+# ===== VIDEOS (too large for GitHub) =====
+Videos_test/
+videos/
+*.MOV
+*.mp4
+
+# ===== YOLO TRAINING ARTIFACTS (not weights) =====
+runs/detect/*/args.yaml
+runs/detect/*/results.csv
+runs/detect/*/results.png
+runs/detect/*/*.png
+runs/detect/*/*.csv
+runs/detect/*/train/
+runs/detect/*/val/
+runs/detect/*/weights/last.pt
+backend/runs/detect/**/args.yaml
+backend/runs/detect/**/*.csv
+backend/runs/detect/**/*.png
+backend/runs/detect/**/*batch*.jpg
+backend/runs/detect/**/weights/epoch*.pt
+backend/runs/detect/**/weights/last.pt
+
+# OS files
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Jupyter
+.ipynb_checkpoints/
+
+# Distribution
+dist/
+build/
+*.egg-info/
+
+# Node / Next.js
+node_modules/
+frontend_next/node_modules/
+frontend_next/.next/
+frontend_next/out/
+frontend_next/.turbo/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*

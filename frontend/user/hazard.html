@@ -1,0 +1,250 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Hazard Analytics - RoadGuard Platform</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="../css/styles.css">
+    <script src="../js/theme.js"></script>
+    <style>
+        body { font-family: 'Inter', sans-serif; }
+        .risk-low { background: rgba(16, 185, 129, .15); color: #34d399; border: 1px solid rgba(16, 185, 129, .3); }
+        .risk-medium { background: rgba(245, 158, 11, .15); color: #fbbf24; border: 1px solid rgba(245, 158, 11, .3); }
+        .risk-high { background: rgba(251, 146, 60, .15); color: #fb923c; border: 1px solid rgba(251, 146, 60, .3); }
+        .risk-critical { background: rgba(239, 68, 68, .15); color: #f87171; border: 1px solid rgba(239, 68, 68, .3); }
+        .ev-card { transition: transform .2s, box-shadow .2s; cursor: pointer; }
+        .ev-card:hover { transform: translateY(-3px); box-shadow: 0 8px 24px rgba(0, 0, 0, .35); }
+        .chip { background: #334155; color: #94a3b8; }
+        .chip.active { background: #4f46e5; color: white; }
+    </style>
+</head>
+
+<body class="bg-slate-900 min-h-screen text-slate-100">
+<div class="flex">
+
+<aside class="sidebar w-64 min-h-screen p-4 fixed left-0 top-0 bg-slate-900 border-r border-slate-800 flex flex-col">
+    <div class="flex items-center gap-3 mb-8 px-2">
+        <div class="w-10 h-10 bg-indigo-600 rounded-xl flex items-center justify-center shadow-lg shadow-indigo-500/20">
+            <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0"/>
+            </svg>
+        </div>
+        <div>
+            <h2 class="font-bold text-white text-lg">RoadGuard AI</h2>
+            <p class="text-xs text-slate-400">Safety Intelligence Suite</p>
+        </div>
+    </div>
+
+    <nav class="space-y-1">
+        <a href="dashboard.html" class="flex items-center gap-3 px-3 py-2 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition"><span>Risk Dashboard</span></a>
+        <a href="analysis.html" class="flex items-center gap-3 px-3 py-2 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition"><span>Analysis &amp; Upload</span></a>
+        <a href="sensors.html" class="flex items-center gap-3 px-3 py-2 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition"><span>Driver Behavior</span></a>
+        <a href="vehicles.html" class="flex items-center gap-3 px-3 py-2 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition"><span>My Vehicles</span></a>
+        <a href="pothole.html" class="flex items-center gap-3 px-3 py-2 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition"><span>Pothole Analytics</span></a>
+        <a href="hazard.html" class="flex items-center gap-3 px-3 py-2 rounded-lg bg-indigo-600/10 text-indigo-400"><span class="font-semibold">Hazard Analytics</span></a>
+    </nav>
+
+    <div class="mt-6 px-1">
+        <button onclick="loadHazards()" class="w-full text-xs px-2 py-1.5 rounded-lg bg-slate-700 hover:bg-slate-600 text-slate-300 font-medium transition">Refresh Data</button>
+    </div>
+
+    <div class="mt-auto pt-4">
+        <div class="p-3 rounded-xl bg-slate-800/50 mb-3 border border-slate-700">
+            <p class="text-xs text-slate-400">Logged in as</p>
+            <p class="text-sm text-white font-medium truncate" id="userName">User</p>
+        </div>
+        <button onclick="API.logout()" class="w-full py-2 px-4 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 text-sm font-medium transition">Logout</button>
+    </div>
+</aside>
+
+<main class="ml-64 flex-1 p-8">
+<div class="max-w-7xl mx-auto space-y-6">
+
+    <div class="flex justify-between items-end">
+        <div>
+            <h1 class="text-3xl font-bold text-white tracking-tight">Hazard Analytics</h1>
+            <p class="text-slate-400 mt-1">Simple live view for hazards and evidence</p>
+        </div>
+        <span id="lastRefresh" class="px-3 py-1 rounded-full bg-slate-700 text-slate-400 text-xs font-medium border border-slate-600">Loading...</span>
+    </div>
+
+    <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <div class="bg-slate-800 border border-slate-700 rounded-xl p-4"><p class="text-xs text-slate-500">Total Hazards</p><p id="sTotal" class="text-3xl font-bold text-white mt-1">0</p></div>
+        <div class="bg-slate-800 border border-slate-700 rounded-xl p-4"><p class="text-xs text-slate-500">Critical</p><p id="sCritical" class="text-3xl font-bold text-rose-400 mt-1">0</p></div>
+        <div class="bg-slate-800 border border-slate-700 rounded-xl p-4"><p class="text-xs text-slate-500">High</p><p id="sHigh" class="text-3xl font-bold text-orange-400 mt-1">0</p></div>
+        <div class="bg-slate-800 border border-slate-700 rounded-xl p-4"><p class="text-xs text-slate-500">With Evidence</p><p id="sEvidence" class="text-3xl font-bold text-indigo-400 mt-1">0</p></div>
+    </div>
+
+    <div class="bg-slate-800 border border-slate-700 rounded-xl p-4">
+        <div class="flex flex-wrap items-center justify-between gap-2 mb-3">
+            <h2 class="text-sm font-semibold text-slate-200">Hazard Evidence</h2>
+            <div class="flex gap-1">
+                <button class="chip active text-xs px-2 py-1 rounded" onclick="setFilter('all', this)">All</button>
+                <button class="chip text-xs px-2 py-1 rounded" onclick="setFilter('CRITICAL', this)">Critical</button>
+                <button class="chip text-xs px-2 py-1 rounded" onclick="setFilter('HIGH', this)">High</button>
+                <button class="chip text-xs px-2 py-1 rounded" onclick="setFilter('MEDIUM', this)">Medium</button>
+                <button class="chip text-xs px-2 py-1 rounded" onclick="setFilter('LOW', this)">Low</button>
+            </div>
+        </div>
+        <div id="evidenceGrid" class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
+            <p class="col-span-full text-slate-500 text-center py-8">No evidence yet</p>
+        </div>
+    </div>
+
+    <div class="bg-slate-800 border border-slate-700 rounded-xl overflow-hidden">
+        <div class="px-4 py-3 border-b border-slate-700"><h2 class="text-sm font-semibold text-slate-200">Recent Hazards</h2></div>
+        <div class="overflow-x-auto">
+            <table class="w-full text-sm">
+                <thead class="bg-slate-900/40 text-slate-400">
+                    <tr>
+                        <th class="text-left px-4 py-2">Time</th>
+                        <th class="text-left px-4 py-2">Type</th>
+                        <th class="text-left px-4 py-2">Severity</th>
+                        <th class="text-left px-4 py-2">Risk</th>
+                        <th class="text-left px-4 py-2">Vehicle</th>
+                    </tr>
+                </thead>
+                <tbody id="hazardRows">
+                    <tr><td colspan="5" class="px-4 py-6 text-center text-slate-500">Loading...</td></tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+</div>
+</main>
+</div>
+
+<div id="imgModal" class="fixed inset-0 hidden items-center justify-center z-[999]" style="background:rgba(0,0,0,.85)" onclick="closeModal()">
+    <img id="modalImg" alt="hazard evidence" class="max-w-5xl max-h-[90vh] object-contain rounded-lg border border-slate-700" onclick="event.stopPropagation()">
+</div>
+
+<script src="../js/api.js"></script>
+<script>
+let hazards = [];
+let filterLevel = 'all';
+
+function getRisk(row) {
+    const r = String(row.risk_level || '').toUpperCase();
+    if (r === 'CRITICAL' || r === 'HIGH' || r === 'MEDIUM' || r === 'LOW') return r;
+    const s = Number(row.severity || 0);
+    if (s >= 0.75) return 'CRITICAL';
+    if (s >= 0.55) return 'HIGH';
+    if (s >= 0.3) return 'MEDIUM';
+    return 'LOW';
+}
+
+function riskClass(r) {
+    if (r === 'CRITICAL') return 'risk-critical';
+    if (r === 'HIGH') return 'risk-high';
+    if (r === 'MEDIUM') return 'risk-medium';
+    return 'risk-low';
+}
+
+function openModal(src) {
+    document.getElementById('modalImg').src = src;
+    const m = document.getElementById('imgModal');
+    m.classList.remove('hidden');
+    m.classList.add('flex');
+}
+
+function closeModal() {
+    const m = document.getElementById('imgModal');
+    m.classList.add('hidden');
+    m.classList.remove('flex');
+}
+
+function setFilter(level, btn) {
+    filterLevel = level;
+    document.querySelectorAll('.chip').forEach(c => c.classList.remove('active'));
+    btn.classList.add('active');
+    renderEvidence();
+}
+
+function renderStats() {
+    const c = { CRITICAL: 0, HIGH: 0, MEDIUM: 0, LOW: 0 };
+    hazards.forEach(h => c[getRisk(h)]++);
+    document.getElementById('sTotal').textContent = hazards.length;
+    document.getElementById('sCritical').textContent = c.CRITICAL;
+    document.getElementById('sHigh').textContent = c.HIGH;
+    document.getElementById('sEvidence').textContent = hazards.filter(h => h.image_path).length;
+}
+
+function renderTable() {
+    const body = document.getElementById('hazardRows');
+    if (!hazards.length) {
+        body.innerHTML = '<tr><td colspan="5" class="px-4 py-6 text-center text-slate-500">No hazards found</td></tr>';
+        return;
+    }
+    body.innerHTML = hazards.slice(0, 60).map(h => {
+        const risk = getRisk(h);
+        const sev = Number(h.severity || 0);
+        return `
+            <tr class="border-t border-slate-700/60">
+                <td class="px-4 py-2 text-slate-300">${new Date(h.ts || Date.now()).toLocaleString()}</td>
+                <td class="px-4 py-2 text-slate-200">${String(h.hazard_type || 'hazard').toUpperCase()}</td>
+                <td class="px-4 py-2 text-slate-300">${(sev * 100).toFixed(0)}%</td>
+                <td class="px-4 py-2"><span class="px-2 py-0.5 rounded text-xs font-semibold ${riskClass(risk)}">${risk}</span></td>
+                <td class="px-4 py-2 text-slate-300">${h.vehicle_id || 'N/A'}</td>
+            </tr>
+        `;
+    }).join('');
+}
+
+function renderEvidence() {
+    const grid = document.getElementById('evidenceGrid');
+    let rows = hazards.filter(h => h.image_path);
+    if (filterLevel !== 'all') rows = rows.filter(r => getRisk(r) === filterLevel);
+    if (!rows.length) {
+        grid.innerHTML = '<p class="col-span-full text-slate-500 text-center py-8">No evidence for selected filter</p>';
+        return;
+    }
+
+    grid.innerHTML = rows.slice(0, 30).map((h) => {
+        const risk = getRisk(h);
+        const path = String(h.image_path || '').replace(/[^a-zA-Z0-9._\-/]/g, '');
+        const src = `http://localhost:5000/evidence/${path}`;
+        return `
+            <div class="ev-card bg-slate-900 border border-slate-700 rounded-lg overflow-hidden" onclick="openModal('${src}')">
+                <div class="relative h-28 bg-black">
+                    <img src="${src}" alt="hazard" class="w-full h-full object-cover" onerror="this.style.opacity='0.1'">
+                    <span class="absolute top-1 left-1 px-1.5 py-0.5 text-[10px] rounded font-bold ${riskClass(risk)}">${risk}</span>
+                </div>
+                <div class="px-2 py-1.5">
+                    <p class="text-[11px] text-slate-300 truncate">${String(h.hazard_type || 'hazard').toUpperCase()}</p>
+                    <p class="text-[10px] text-slate-500">${new Date(h.ts || Date.now()).toLocaleString()}</p>
+                </div>
+            </div>
+        `;
+    }).join('');
+}
+
+async function loadHazards() {
+    document.getElementById('lastRefresh').textContent = 'Loading...';
+    try {
+        const data = await API.getHazards(500);
+        hazards = Array.isArray(data) ? data : [];
+        renderStats();
+        renderEvidence();
+        renderTable();
+        document.getElementById('lastRefresh').textContent = 'Updated ' + new Date().toLocaleTimeString();
+    } catch (e) {
+        console.error(e);
+        document.getElementById('lastRefresh').textContent = 'Load error';
+    }
+}
+
+async function init() {
+    if (!API.getToken()) { window.location.href = '../index.html'; return; }
+    document.getElementById('userName').textContent = localStorage.getItem('userName') || 'User';
+    await loadHazards();
+}
+
+init();
+</script>
+
+</body>
+</html>

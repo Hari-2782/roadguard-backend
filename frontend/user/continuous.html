@@ -1,0 +1,708 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Continuous Analysis - RoadGuard Platform</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.plot.ly/plotly-2.27.0.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap"
+        rel="stylesheet">
+    <link rel="stylesheet" href="../css/styles.css">
+    <script src="../js/theme.js"></script>
+    <style>
+        * {
+            font-family: 'Inter', sans-serif;
+        }
+
+        body {
+            background: #0b1120;
+        }
+
+        /* Glowing upload zone */
+        .upload-zone {
+            background: linear-gradient(135deg, rgba(99, 102, 241, 0.05), rgba(168, 85, 247, 0.05));
+            border: 2px dashed rgba(99, 102, 241, 0.3);
+            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .upload-zone:hover,
+        .upload-zone.dragover {
+            border-color: rgba(99, 102, 241, 0.8);
+            background: linear-gradient(135deg, rgba(99, 102, 241, 0.1), rgba(168, 85, 247, 0.1));
+            box-shadow: 0 0 40px rgba(99, 102, 241, 0.15);
+            transform: translateY(-2px);
+        }
+
+        /* Stat card glow */
+        .stat-card {
+            background: linear-gradient(135deg, rgba(30, 41, 59, 0.8), rgba(15, 23, 42, 0.9));
+            border: 1px solid rgba(99, 102, 241, 0.15);
+            backdrop-filter: blur(10px);
+        }
+
+        .stat-card:hover {
+            border-color: rgba(99, 102, 241, 0.4);
+            box-shadow: 0 0 20px rgba(99, 102, 241, 0.1);
+        }
+
+        /* Pulse animation for processing */
+        @keyframes pulseGlow {
+
+            0%,
+            100% {
+                box-shadow: 0 0 10px rgba(99, 102, 241, 0.3);
+            }
+
+            50% {
+                box-shadow: 0 0 30px rgba(99, 102, 241, 0.6);
+            }
+        }
+
+        .processing {
+            animation: pulseGlow 2s ease-in-out infinite;
+        }
+
+        /* Progress bar */
+        .progress-fill {
+            background: linear-gradient(90deg, #6366f1, #a855f7, #ec4899);
+            background-size: 200% 100%;
+            animation: shimmer 1.5s linear infinite;
+        }
+
+        @keyframes shimmer {
+            0% {
+                background-position: -200% 0;
+            }
+
+            100% {
+                background-position: 200% 0;
+            }
+        }
+
+        /* Legend badges */
+        .legend-badge {
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 11px;
+            font-weight: 600;
+            letter-spacing: 0.5px;
+        }
+
+        /* Custom scrollbar */
+        ::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: #0f172a;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: #334155;
+            border-radius: 3px;
+        }
+    </style>
+</head>
+
+<body class="min-h-screen text-slate-100">
+    <div class="flex">
+        <!-- Sidebar (same as other pages) -->
+        <aside class="sidebar w-64 min-h-screen p-4 fixed left-0 top-0 bg-slate-900 border-r border-slate-800 z-50">
+            <div class="flex items-center gap-3 mb-8 px-2">
+                <div
+                    class="w-10 h-10 bg-indigo-600 rounded-xl flex items-center justify-center shadow-lg shadow-indigo-500/20">
+                    <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                    </svg>
+                </div>
+                <div>
+                    <h2 class="font-bold text-white text-lg">RoadGuard AI</h2>
+                    <p class="text-xs text-slate-400">Safety Intelligence Suite</p>
+                </div>
+            </div>
+
+            <nav class="space-y-1">
+                <a href="dashboard.html"
+                    class="flex items-center gap-3 px-3 py-2 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M13 10V3L4 14h7v7l9-11h-7z"></path>
+                    </svg>
+                    <span class="font-medium">Risk Dashboard</span>
+                </a>
+                <a href="analysis.html"
+                    class="flex items-center gap-3 px-3 py-2 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M7 12l3-3 3 3 4-4M8 21l4-4 4 4M3 4h18M4 4h16v12a1 1 0 01-1 1H5a1 1 0 01-1-1V4z"></path>
+                    </svg>
+                    <span>Analysis & Upload</span>
+                </a>
+                <a href="sensors.html"
+                    class="flex items-center gap-3 px-3 py-2 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z">
+                        </path>
+                    </svg>
+                    <span>Driver Behavior</span>
+                </a>
+                <a href="continuous.html"
+                    class="flex items-center gap-3 px-3 py-2 rounded-lg bg-indigo-600/10 text-indigo-400">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M9 19V6l12-3v13M9 19c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zm12-3c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zM9 10l12-3">
+                        </path>
+                    </svg>
+                    <span class="font-medium">Continuous Analysis</span>
+                </a>
+                <a href="vehicles.html"
+                    class="flex items-center gap-3 px-3 py-2 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M9 17a2 2 0 11-4 0 2 2 0 014 0zM19 17a2 2 0 11-4 0 2 2 0 014 0z"></path>
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M13 16V6a1 1 0 00-1-1H4a1 1 0 00-1 1v10l2 2h6l2-2zm0 0h4a1 1 0 001-1v-4l-3-5h-2"></path>
+                    </svg>
+                    <span>My Vehicles</span>
+                </a>
+                <a href="pothole.html"
+                    class="flex items-center gap-3 px-3 py-2 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7"></path>
+                    </svg>
+                    <span>Pothole Analysis</span>
+                </a>
+                <a href="hazard.html"
+                    class="flex items-center gap-3 px-3 py-2 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7"></path>
+                    </svg>
+                    <span>Hazard Analytics</span>
+                </a>
+            </nav>
+
+            <div class="absolute bottom-4 left-4 right-4">
+                <div class="p-3 rounded-xl bg-slate-800/50 mb-3 border border-slate-700">
+                    <p class="text-xs text-slate-400">Logged in as</p>
+                    <p class="text-sm text-white font-medium truncate" id="userName">User</p>
+                </div>
+                <button onclick="API.logout()"
+                    class="w-full py-2 px-4 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 text-sm font-medium transition flex items-center justify-center gap-2">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1">
+                        </path>
+                    </svg>
+                    Logout
+                </button>
+            </div>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="ml-64 flex-1 p-8">
+            <div class="max-w-7xl mx-auto">
+
+                <!-- Header -->
+                <div class="mb-8">
+                    <h1
+                        class="text-3xl font-extrabold bg-gradient-to-r from-indigo-400 via-purple-400 to-pink-400 bg-clip-text text-transparent tracking-tight">
+                        Continuous Time-Series Analysis
+                    </h1>
+                    <p class="text-slate-400 mt-2 text-sm">Upload continuous IMU telemetry for sliding-window maneuver
+                        classification with Hybrid Fusion</p>
+                </div>
+
+                <!-- Pipeline Diagram -->
+                <div
+                    class="bg-gradient-to-r from-indigo-900/30 via-purple-900/20 to-pink-900/30 border border-indigo-500/20 rounded-2xl p-5 mb-8">
+                    <div class="flex items-center justify-between text-sm">
+                        <div class="text-center flex-1">
+                            <div
+                                class="w-12 h-12 bg-gradient-to-br from-indigo-500 to-indigo-600 text-white rounded-2xl flex items-center justify-center mx-auto mb-2 font-black text-lg shadow-lg shadow-indigo-500/30">
+                                1</div>
+                            <p class="text-indigo-200 font-semibold">CSV Upload</p>
+                            <p class="text-indigo-400/70 text-xs mt-0.5">Continuous IMU Data</p>
+                        </div>
+                        <svg class="w-8 h-8 text-indigo-500/50 flex-shrink-0" fill="none" stroke="currentColor"
+                            viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M17 8l4 4m0 0l-4 4m4-4H3"></path>
+                        </svg>
+                        <div class="text-center flex-1">
+                            <div
+                                class="w-12 h-12 bg-gradient-to-br from-purple-500 to-purple-600 text-white rounded-2xl flex items-center justify-center mx-auto mb-2 font-black text-lg shadow-lg shadow-purple-500/30">
+                                2</div>
+                            <p class="text-indigo-200 font-semibold">Kalman Filter</p>
+                            <p class="text-purple-400/70 text-xs mt-0.5">Noise Suppression</p>
+                        </div>
+                        <svg class="w-8 h-8 text-purple-500/50 flex-shrink-0" fill="none" stroke="currentColor"
+                            viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M17 8l4 4m0 0l-4 4m4-4H3"></path>
+                        </svg>
+                        <div class="text-center flex-1">
+                            <div
+                                class="w-12 h-12 bg-gradient-to-br from-violet-500 to-violet-600 text-white rounded-2xl flex items-center justify-center mx-auto mb-2 font-black text-lg shadow-lg shadow-violet-500/30">
+                                3</div>
+                            <p class="text-indigo-200 font-semibold">Sliding Window</p>
+                            <p class="text-violet-400/70 text-xs mt-0.5">N=30, S=5 @ 20Hz</p>
+                        </div>
+                        <svg class="w-8 h-8 text-violet-500/50 flex-shrink-0" fill="none" stroke="currentColor"
+                            viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M17 8l4 4m0 0l-4 4m4-4H3"></path>
+                        </svg>
+                        <div class="text-center flex-1">
+                            <div
+                                class="w-12 h-12 bg-gradient-to-br from-pink-500 to-rose-500 text-white rounded-2xl flex items-center justify-center mx-auto mb-2 font-black text-lg shadow-lg shadow-pink-500/30">
+                                4</div>
+                            <p class="text-indigo-200 font-semibold">Hybrid Fusion</p>
+                            <p class="text-pink-400/70 text-xs mt-0.5">ONNX + Physics (α=0.1)</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Upload Zone -->
+                <div class="upload-zone rounded-2xl p-10 text-center cursor-pointer mb-8" id="dropZone"
+                    onclick="document.getElementById('fileInput').click()">
+                    <div id="uploadContent">
+                        <svg class="w-16 h-16 text-indigo-500/50 mx-auto mb-4" fill="none" stroke="currentColor"
+                            viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"
+                                d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12">
+                            </path>
+                        </svg>
+                        <p class="text-white font-semibold text-lg mb-1">Drop your continuous CSV here</p>
+                        <p class="text-slate-400 text-sm">Requires: timestamp, accel_x/y/z, gyro_x/y/z, event_type</p>
+                        <p class="text-indigo-400/60 text-xs mt-3">Supports 100K+ rows of continuous telemetry</p>
+                    </div>
+                    <div id="uploadProgress" class="hidden">
+                        <div class="w-full bg-slate-800 rounded-full h-3 mb-4 overflow-hidden">
+                            <div class="progress-fill h-full rounded-full transition-all duration-300" id="progressBar"
+                                style="width: 0%"></div>
+                        </div>
+                        <p class="text-indigo-400 font-medium" id="progressText">Processing...</p>
+                    </div>
+                    <input type="file" id="fileInput" class="hidden" accept=".csv" onchange="handleFileSelect(event)">
+                </div>
+
+                <!-- Stats Row (hidden until results) -->
+                <div id="statsRow" class="hidden grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+                    <div class="stat-card rounded-xl p-4 transition-all duration-300">
+                        <p class="text-slate-400 text-xs font-medium uppercase tracking-wider">Total Rows</p>
+                        <p class="text-2xl font-black text-white mt-1" id="statRows">-</p>
+                    </div>
+                    <div class="stat-card rounded-xl p-4 transition-all duration-300">
+                        <p class="text-slate-400 text-xs font-medium uppercase tracking-wider">Windows Analyzed</p>
+                        <p class="text-2xl font-black text-indigo-400 mt-1" id="statWindows">-</p>
+                    </div>
+                    <div class="stat-card rounded-xl p-4 transition-all duration-300">
+                        <p class="text-slate-400 text-xs font-medium uppercase tracking-wider">Events Detected</p>
+                        <p class="text-2xl font-black text-rose-400 mt-1" id="statEvents">-</p>
+                    </div>
+                    <div class="stat-card rounded-xl p-4 transition-all duration-300">
+                        <p class="text-slate-400 text-xs font-medium uppercase tracking-wider">Accuracy</p>
+                        <p class="text-2xl font-black text-emerald-400 mt-1" id="statAccuracy">-</p>
+                    </div>
+                </div>
+
+                <!-- Main Chart -->
+                <div id="chartContainer" class="hidden">
+                    <!-- Legend -->
+                    <div class="flex items-center gap-3 mb-4 flex-wrap">
+                        <span class="legend-badge bg-blue-500/20 text-blue-400 border border-blue-500/30">● Raw Accel
+                            X</span>
+                        <span class="legend-badge bg-cyan-500/20 text-cyan-400 border border-cyan-500/30">● Smoothed
+                            (Kalman)</span>
+                        <span class="legend-badge bg-rose-500/20 text-rose-400 border border-rose-500/30">━ ━ Safety
+                            Threshold (−3.0 m/s²)</span>
+                        <span class="legend-badge bg-red-500/10 text-red-300 border border-red-500/20">█ Harsh
+                            Brake</span>
+                        <span class="legend-badge bg-amber-500/10 text-amber-300 border border-amber-500/20">█ Sharp
+                            Turn</span>
+                        <span class="legend-badge bg-emerald-500/10 text-emerald-300 border border-emerald-500/20">█
+                            Normal</span>
+                    </div>
+
+                    <!-- Plotly Chart -->
+                    <div id="mainChart" class="bg-slate-900/50 border border-slate-800 rounded-2xl overflow-hidden"
+                        style="height: 500px;"></div>
+
+                    <!-- Comparison Timeline -->
+                    <div class="mt-6">
+                        <h3 class="text-white font-bold text-lg mb-3 flex items-center gap-2">
+                            <svg class="w-5 h-5 text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2">
+                                </path>
+                            </svg>
+                            Actual vs Predicted Timeline
+                        </h3>
+                        <div id="comparisonChart"
+                            class="bg-slate-900/50 border border-slate-800 rounded-2xl overflow-hidden"
+                            style="height: 200px;"></div>
+                    </div>
+
+                    <!-- Event Distribution -->
+                    <div class="mt-6 grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div>
+                            <h3 class="text-white font-bold mb-3">Prediction Distribution</h3>
+                            <div id="pieChart"
+                                class="bg-slate-900/50 border border-slate-800 rounded-2xl overflow-hidden"
+                                style="height: 320px;"></div>
+                        </div>
+                        <div>
+                            <h3 class="text-white font-bold mb-3">Confusion Summary</h3>
+                            <div id="confusionTable"
+                                class="bg-slate-900/50 border border-slate-800 rounded-2xl p-4 overflow-auto"
+                                style="height: 320px;"></div>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+        </main>
+    </div>
+
+    <script src="../js/api.js"></script>
+    <script>
+        const userName = localStorage.getItem('userName') || 'User';
+        document.getElementById('userName').textContent = userName;
+
+        let selectedFile = null;
+
+        // ── Color Map ────────────────────────────────────────────────────
+        const COLOR_MAP = {
+            'Harsh_Brake': { fill: 'rgba(239,68,68,0.15)', line: '#ef4444', text: '#fca5a5' },
+            'Sharp_Turn': { fill: 'rgba(245,158,11,0.15)', line: '#f59e0b', text: '#fcd34d' },
+            'Sudden_Acceleration': { fill: 'rgba(168,85,247,0.15)', line: '#a855f7', text: '#c4b5fd' },
+            'Sudden_Lane_Change': { fill: 'rgba(236,72,153,0.15)', line: '#ec4899', text: '#f9a8d4' },
+            'Normal_Driving': { fill: 'rgba(16,185,129,0.04)', line: '#10b981', text: '#6ee7b7' }
+        };
+
+        // ── Label to numeric ─────────────────────────────────────────────
+        const LABEL_NUM = {
+            'Harsh_Brake': 0, 'Normal_Driving': 1, 'Sharp_Turn': 2,
+            'Sudden_Acceleration': 3, 'Sudden_Lane_Change': 4, 'Unknown': 1
+        };
+
+        // ── Drag & Drop ──────────────────────────────────────────────────
+        const dropZone = document.getElementById('dropZone');
+        dropZone.addEventListener('dragover', (e) => { e.preventDefault(); dropZone.classList.add('dragover'); });
+        dropZone.addEventListener('dragleave', () => dropZone.classList.remove('dragover'));
+        dropZone.addEventListener('drop', (e) => {
+            e.preventDefault();
+            dropZone.classList.remove('dragover');
+            if (e.dataTransfer.files.length > 0) {
+                selectedFile = e.dataTransfer.files[0];
+                processFile();
+            }
+        });
+
+        function handleFileSelect(e) {
+            selectedFile = e.target.files[0];
+            if (selectedFile) processFile();
+        }
+
+        // ── Process File ─────────────────────────────────────────────────
+        async function processFile() {
+            if (!selectedFile) return;
+
+            // Show progress
+            document.getElementById('uploadContent').classList.add('hidden');
+            document.getElementById('uploadProgress').classList.remove('hidden');
+            dropZone.classList.add('processing');
+
+            const progressBar = document.getElementById('progressBar');
+            const progressText = document.getElementById('progressText');
+
+            progressBar.style.width = '10%';
+            progressText.textContent = `Uploading ${selectedFile.name} (${(selectedFile.size / 1024 / 1024).toFixed(1)} MB)...`;
+
+            const formData = new FormData();
+            formData.append("file", selectedFile);
+
+            try {
+                progressBar.style.width = '30%';
+                progressText.textContent = 'Processing through Kalman Filter + Sliding Window...';
+
+                const res = await fetch("http://localhost:5000/api/behavior/upload_continuous", {
+                    method: "POST",
+                    body: formData
+                });
+
+                progressBar.style.width = '80%';
+                progressText.textContent = 'Rendering visualizations...';
+
+                const data = await res.json();
+
+                if (data.error) {
+                    alert("Error: " + data.error);
+                    resetUpload();
+                    return;
+                }
+
+                progressBar.style.width = '100%';
+                progressText.textContent = 'Complete!';
+
+                setTimeout(() => {
+                    renderResults(data);
+                    dropZone.classList.remove('processing');
+                }, 500);
+
+            } catch (err) {
+                console.error(err);
+                alert("Failed to process: " + err.message);
+                resetUpload();
+            }
+        }
+
+        function resetUpload() {
+            document.getElementById('uploadContent').classList.remove('hidden');
+            document.getElementById('uploadProgress').classList.add('hidden');
+            document.getElementById('progressBar').style.width = '0%';
+            dropZone.classList.remove('processing');
+            document.getElementById('fileInput').value = '';
+            selectedFile = null;
+        }
+
+        // ── Render Results ───────────────────────────────────────────────
+        function renderResults(data) {
+            // Show containers
+            document.getElementById('statsRow').classList.remove('hidden');
+            document.getElementById('chartContainer').classList.remove('hidden');
+
+            const windows = data.windows;
+            const chart = data.chart;
+
+            // ── Stats ────────────────────────────────────────────────────
+            const eventCount = windows.filter(w => w.predicted_label !== 'Normal_Driving').length;
+            let correctCount = 0;
+            let totalCompared = 0;
+            windows.forEach(w => {
+                if (w.actual_label && w.actual_label !== 'Unknown' && w.actual_label !== 'N/A') {
+                    totalCompared++;
+                    if (w.predicted_label === w.actual_label) correctCount++;
+                }
+            });
+            const accuracy = totalCompared > 0 ? ((correctCount / totalCompared) * 100).toFixed(1) + '%' : 'N/A';
+
+            document.getElementById('statRows').textContent = data.total_rows.toLocaleString();
+            document.getElementById('statWindows').textContent = data.total_windows.toLocaleString();
+            document.getElementById('statEvents').textContent = eventCount.toLocaleString();
+            document.getElementById('statAccuracy').textContent = accuracy;
+
+            // ── Main Chart (Plotly) ──────────────────────────────────────
+            const traces = [];
+
+            // Raw AccelX line
+            traces.push({
+                x: chart.timestamps,
+                y: chart.accelX_raw,
+                type: 'scatter',
+                mode: 'lines',
+                name: 'Raw Accel X',
+                line: { color: 'rgba(96,165,250,0.6)', width: 1 },
+                hovertemplate: '<b>Raw Ax</b>: %{y:.3f} m/s²<extra></extra>'
+            });
+
+            // Smoothed AccelX line
+            traces.push({
+                x: chart.timestamps,
+                y: chart.accelX_smooth,
+                type: 'scatter',
+                mode: 'lines',
+                name: 'Smoothed (Kalman)',
+                line: { color: '#22d3ee', width: 2 },
+                hovertemplate: '<b>Smoothed Ax</b>: %{y:.3f} m/s²<extra></extra>'
+            });
+
+            // Physics threshold line
+            traces.push({
+                x: [chart.timestamps[0], chart.timestamps[chart.timestamps.length - 1]],
+                y: [-3.0, -3.0],
+                type: 'scatter',
+                mode: 'lines',
+                name: 'Physics Threshold (-3.0)',
+                line: { color: '#ef4444', width: 2, dash: 'dash' },
+                hoverinfo: 'skip'
+            });
+
+            // Add shading shapes for detected events
+            const shapes = [];
+            const tsArray = chart.timestamps;
+
+            windows.forEach(w => {
+                if (w.predicted_label === 'Normal_Driving') return;
+                const color = COLOR_MAP[w.predicted_label] || COLOR_MAP['Normal_Driving'];
+
+                // Map start_idx/end_idx to approximate timestamp positions
+                const step = Math.max(1, data.total_rows / tsArray.length);
+                const x0_idx = Math.floor(w.start_idx / step);
+                const x1_idx = Math.min(Math.floor(w.end_idx / step), tsArray.length - 1);
+
+                if (x0_idx < tsArray.length && x1_idx < tsArray.length) {
+                    shapes.push({
+                        type: 'rect',
+                        xref: 'x', yref: 'paper',
+                        x0: tsArray[x0_idx], x1: tsArray[x1_idx],
+                        y0: 0, y1: 1,
+                        fillcolor: color.fill,
+                        line: { width: 0 },
+                        layer: 'below'
+                    });
+                }
+            });
+
+            const layout = {
+                paper_bgcolor: 'rgba(0,0,0,0)',
+                plot_bgcolor: 'rgba(15,23,42,0.8)',
+                font: { color: '#94a3b8', family: 'Inter' },
+                margin: { l: 60, r: 30, t: 30, b: 60 },
+                xaxis: {
+                    title: 'Timestamp',
+                    gridcolor: 'rgba(51,65,85,0.3)',
+                    tickfont: { size: 10 },
+                    tickangle: -30
+                },
+                yaxis: {
+                    title: 'Acceleration X (m/s²)',
+                    gridcolor: 'rgba(51,65,85,0.3)',
+                    zeroline: true,
+                    zerolinecolor: 'rgba(100,116,139,0.3)'
+                },
+                shapes: shapes,
+                legend: {
+                    orientation: 'h',
+                    x: 0.5, xanchor: 'center',
+                    y: 1.08,
+                    font: { size: 11 }
+                },
+                hovermode: 'x unified'
+            };
+
+            Plotly.newPlot('mainChart', traces, layout, {
+                responsive: true,
+                displayModeBar: true,
+                modeBarButtonsToRemove: ['lasso2d', 'select2d']
+            });
+
+            // ── Comparison Timeline ──────────────────────────────────────
+            const actualY = [];
+            const predictedY = [];
+            const compX = [];
+
+            windows.forEach(w => {
+                compX.push(w.timestamp);
+                actualY.push(LABEL_NUM[w.actual_label] ?? 1);
+                predictedY.push(LABEL_NUM[w.predicted_label] ?? 1);
+            });
+
+            const compTraces = [
+                {
+                    x: compX, y: actualY,
+                    type: 'scatter', mode: 'lines',
+                    name: 'Actual Label',
+                    line: { color: '#22d3ee', width: 2 },
+                    hovertemplate: '<b>Actual</b>: %{text}<extra></extra>',
+                    text: windows.map(w => w.actual_label)
+                },
+                {
+                    x: compX, y: predictedY,
+                    type: 'scatter', mode: 'lines',
+                    name: 'Predicted Label',
+                    line: { color: '#f472b6', width: 2, dash: 'dot' },
+                    hovertemplate: '<b>Predicted</b>: %{text}<extra></extra>',
+                    text: windows.map(w => w.predicted_label)
+                }
+            ];
+
+            const compLayout = {
+                paper_bgcolor: 'rgba(0,0,0,0)',
+                plot_bgcolor: 'rgba(15,23,42,0.8)',
+                font: { color: '#94a3b8', family: 'Inter' },
+                margin: { l: 60, r: 30, t: 10, b: 40 },
+                xaxis: { gridcolor: 'rgba(51,65,85,0.3)', tickfont: { size: 9 }, tickangle: -30 },
+                yaxis: {
+                    gridcolor: 'rgba(51,65,85,0.3)',
+                    tickvals: [0, 1, 2, 3, 4],
+                    ticktext: ['Brake', 'Normal', 'Turn', 'Accel', 'Lane'],
+                    tickfont: { size: 10 }
+                },
+                legend: { orientation: 'h', x: 0.5, xanchor: 'center', y: 1.2, font: { size: 11 } },
+                hovermode: 'x unified'
+            };
+
+            Plotly.newPlot('comparisonChart', compTraces, compLayout, { responsive: true, displayModeBar: false });
+
+            // ── Pie Chart ────────────────────────────────────────────────
+            const labelCounts = {};
+            windows.forEach(w => {
+                labelCounts[w.predicted_label] = (labelCounts[w.predicted_label] || 0) + 1;
+            });
+
+            const pieLabels = Object.keys(labelCounts);
+            const pieValues = Object.values(labelCounts);
+            const pieColors = pieLabels.map(l => (COLOR_MAP[l] || COLOR_MAP['Normal_Driving']).line);
+
+            Plotly.newPlot('pieChart', [{
+                labels: pieLabels.map(l => l.replace(/_/g, ' ')),
+                values: pieValues,
+                type: 'pie',
+                hole: 0.5,
+                marker: { colors: pieColors, line: { color: '#0f172a', width: 2 } },
+                textfont: { color: '#fff', size: 11 },
+                hovertemplate: '<b>%{label}</b><br>%{value} windows (%{percent})<extra></extra>'
+            }], {
+                paper_bgcolor: 'rgba(0,0,0,0)',
+                font: { color: '#94a3b8', family: 'Inter' },
+                margin: { l: 20, r: 20, t: 20, b: 20 },
+                showlegend: true,
+                legend: { font: { size: 10 } }
+            }, { responsive: true, displayModeBar: false });
+
+            // ── Confusion Summary Table ──────────────────────────────────
+            const confMatrix = {};
+            windows.forEach(w => {
+                const actual = w.actual_label || 'Unknown';
+                const pred = w.predicted_label;
+                if (!confMatrix[actual]) confMatrix[actual] = {};
+                confMatrix[actual][pred] = (confMatrix[actual][pred] || 0) + 1;
+            });
+
+            let tableHTML = `<table class="w-full text-xs">
+                <thead><tr class="text-slate-400 border-b border-slate-700">
+                    <th class="p-2 text-left font-medium">Actual ↓ / Pred →</th>`;
+            const allLabels = [...new Set([...Object.keys(confMatrix), ...pieLabels])];
+            allLabels.forEach(l => {
+                tableHTML += `<th class="p-2 text-center font-medium">${l.replace(/_/g, ' ').substring(0, 8)}</th>`;
+            });
+            tableHTML += `</tr></thead><tbody>`;
+
+            Object.keys(confMatrix).forEach(actual => {
+                tableHTML += `<tr class="border-b border-slate-800/50"><td class="p-2 text-slate-300 font-medium">${actual.replace(/_/g, ' ')}</td>`;
+                allLabels.forEach(pred => {
+                    const count = confMatrix[actual]?.[pred] || 0;
+                    const isCorrect = actual === pred;
+                    const bg = isCorrect && count > 0 ? 'bg-emerald-500/20 text-emerald-400 font-bold' :
+                        count > 0 ? 'bg-rose-500/10 text-rose-400' : 'text-slate-600';
+                    tableHTML += `<td class="p-2 text-center ${bg}">${count || '·'}</td>`;
+                });
+                tableHTML += `</tr>`;
+            });
+            tableHTML += `</tbody></table>`;
+            document.getElementById('confusionTable').innerHTML = tableHTML;
+
+            // Collapse upload zone
+            dropZone.style.display = 'none';
+        }
+    </script>
+</body>
+
+</html>

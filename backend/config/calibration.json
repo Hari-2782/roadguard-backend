@@ -1,0 +1,12 @@
+{
+  "kmh_per_pixel": 3.7,
+  "offset": -0.4874,
+  "method": "auto_calibration_two_point",
+  "flow_30": 7.4181,
+  "flow_60": 14.7177,
+  "std_30": 2.9088,
+  "std_60": 4.634,
+  "samples_30": 332,
+  "samples_60": 353,
+  "note": "Calibrated from Videos_test. Flow diff = 7.2996"
+}
