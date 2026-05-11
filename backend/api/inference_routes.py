@@ -77,6 +77,50 @@ def infer_road():
 def infer_sign():
     return jsonify({"error": "Endpoint not fully implemented in reconstruction"}), 501
 
+@inference_bp.route('/frame', methods=['POST'])
+def infer_frame():
+    """Analyze a single frame for hazards, potholes, and signs."""
+    import cv2
+    import numpy as np
+    from api.api_server import hazard_model, pothole_model, sign_model
+    
+    if 'image' not in request.files:
+        return jsonify({'error': 'No image provided'}), 400
+        
+    file = request.files['image']
+    in_memory_file = file.read()
+    nparr = np.frombuffer(in_memory_file, np.uint8)
+    frame = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
+    
+    if frame is None:
+        return jsonify({'error': 'Invalid image'}), 400
+        
+    results = {
+        'hazards': [],
+        'potholes': [],
+        'signs': []
+    }
+    
+    if hazard_model and hasattr(hazard_model, 'model') and hazard_model.model is not None:
+        try:
+            results['hazards'] = hazard_model.detect(frame)
+        except Exception as e:
+            pass
+            
+    if pothole_model and hasattr(pothole_model, 'model') and pothole_model.model is not None:
+        try:
+            results['potholes'] = pothole_model.detect(frame)
+        except Exception as e:
+            pass
+            
+    if sign_model and hasattr(sign_model, 'model') and sign_model.model is not None:
+        try:
+            results['signs'] = sign_model.detect(frame)
+        except Exception as e:
+            pass
+            
+    return jsonify(results)
+
 @inference_bp.route('/batch', methods=['POST'])
 def infer_batch():
     return jsonify({"error": "Endpoint not fully implemented in reconstruction"}), 501
