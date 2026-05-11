@@ -571,7 +571,7 @@ html[data-theme="light"] #safetyMap {
   background: #dbeafe !important;
 }
 
-@media (max-width: 768px) {
+@media (max-width: 1024px) {
   body {
     overflow-x: hidden;
   }

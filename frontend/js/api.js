@@ -407,7 +407,7 @@ function setupMobileSidebar() {
     const btn = document.createElement('button');
     btn.id = 'mobileNavToggle';
     btn.type = 'button';
-    btn.className = 'mobile-nav-toggle md:hidden';
+    btn.className = 'mobile-nav-toggle lg:hidden';
     btn.setAttribute('aria-label', 'Open navigation');
     btn.innerHTML = `
         <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
