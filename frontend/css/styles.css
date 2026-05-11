@@ -572,6 +572,114 @@ html[data-theme="light"] #safetyMap {
 }
 
 @media (max-width: 768px) {
+  body {
+    overflow-x: hidden;
+  }
+
+  aside.fixed,
+  aside.sidebar {
+    position: fixed !important;
+    top: 0 !important;
+    left: 0 !important;
+    z-index: 60 !important;
+    width: min(18rem, 86vw) !important;
+    max-width: 86vw !important;
+    height: 100dvh !important;
+    min-height: 100dvh !important;
+    overflow-y: auto !important;
+    transform: translateX(-105%);
+    transition: transform 0.22s ease;
+    box-shadow: 24px 0 60px rgba(0, 0, 0, 0.35);
+  }
+
+  body.mobile-nav-open aside.fixed,
+  body.mobile-nav-open aside.sidebar {
+    transform: translateX(0);
+  }
+
+  body.mobile-nav-open::before {
+    content: "";
+    position: fixed;
+    inset: 0;
+    z-index: 50;
+    background: rgba(2, 6, 23, 0.62);
+    backdrop-filter: blur(2px);
+  }
+
+  .mobile-nav-toggle {
+    position: fixed;
+    top: 0.85rem;
+    left: 0.85rem;
+    z-index: 70;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 2.5rem;
+    height: 2.5rem;
+    border-radius: 0.75rem;
+    background: var(--bg-card-solid);
+    color: var(--text-primary);
+    border: 1px solid var(--border);
+    box-shadow: var(--shadow-soft);
+  }
+
+  .ml-64 {
+    margin-left: 0 !important;
+  }
+
+  main,
+  .flex-1 {
+    min-width: 0;
+  }
+
+  main.p-8,
+  main.p-6,
+  .p-8 {
+    padding: 4.75rem 1rem 1.25rem !important;
+  }
+
+  .max-w-7xl,
+  .max-w-6xl,
+  .max-w-\[1600px\] {
+    max-width: 100% !important;
+  }
+
+  .grid {
+    grid-template-columns: minmax(0, 1fr) !important;
+  }
+
+  .glass-card,
+  .stat-card,
+  .chart-card,
+  .glass-panel,
+  .bg-slate-800,
+  .bg-slate-900 {
+    min-width: 0;
+  }
+
+  .data-table,
+  table {
+    min-width: 680px;
+  }
+
+  table {
+    display: block;
+    overflow-x: auto;
+    white-space: nowrap;
+  }
+
+  #map,
+  #safetyMap,
+  .leaflet-container {
+    min-height: 260px;
+  }
+
+  img,
+  video,
+  canvas {
+    max-width: 100%;
+  }
+
   .theme-toggle {
     top: 0.75rem;
     right: 0.75rem;

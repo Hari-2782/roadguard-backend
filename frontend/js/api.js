@@ -398,8 +398,46 @@ function normalizeUserSidebar() {
     `).join('');
 }
 
+function setupMobileSidebar() {
+    const path = window.location.pathname.replace(/\\/g, '/');
+    if (!path.includes('/user/') && !path.includes('/admin/')) return;
+    const aside = document.querySelector('aside');
+    if (!aside || document.getElementById('mobileNavToggle')) return;
+
+    const btn = document.createElement('button');
+    btn.id = 'mobileNavToggle';
+    btn.type = 'button';
+    btn.className = 'mobile-nav-toggle md:hidden';
+    btn.setAttribute('aria-label', 'Open navigation');
+    btn.innerHTML = `
+        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 7h16M4 12h16M4 17h16"></path>
+        </svg>
+    `;
+    btn.addEventListener('click', () => {
+        const open = document.body.classList.toggle('mobile-nav-open');
+        btn.setAttribute('aria-label', open ? 'Close navigation' : 'Open navigation');
+    });
+    document.body.appendChild(btn);
+
+    aside.addEventListener('click', (event) => {
+        const link = event.target.closest('a');
+        if (link) document.body.classList.remove('mobile-nav-open');
+    });
+
+    document.addEventListener('click', (event) => {
+        if (!document.body.classList.contains('mobile-nav-open')) return;
+        if (aside.contains(event.target) || btn.contains(event.target)) return;
+        document.body.classList.remove('mobile-nav-open');
+    });
+}
+
 if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', normalizeUserSidebar);
+    document.addEventListener('DOMContentLoaded', () => {
+        normalizeUserSidebar();
+        setupMobileSidebar();
+    });
 } else {
     normalizeUserSidebar();
+    setupMobileSidebar();
 }

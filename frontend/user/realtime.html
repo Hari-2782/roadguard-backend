@@ -6,13 +6,14 @@
     <title>Real-Time Detection - RoadGuard AI</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="../css/styles.css">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
         body {
             font-family: 'Outfit', sans-serif;
             background-color: #0f172a;
             color: #f8fafc;
-            overflow: hidden;
+            overflow-x: hidden;
         }
         .glass {
             background: rgba(30, 41, 59, 0.7);
@@ -87,6 +88,60 @@
         @keyframes slideIn {
             from { transform: translateX(100%); opacity: 0; }
             to { transform: translateX(0); opacity: 1; }
+        }
+        @media (max-width: 768px) {
+            .stream-container {
+                height: auto;
+                min-height: 58dvh;
+                border-radius: 16px;
+            }
+            .stream-feed {
+                min-height: 58dvh;
+            }
+            header {
+                flex-direction: column;
+                align-items: stretch !important;
+                gap: 14px;
+                padding-left: 3.25rem !important;
+            }
+            header > div:last-child {
+                display: grid !important;
+                grid-template-columns: 1fr;
+                gap: 10px;
+            }
+            #liveBtn {
+                width: 100%;
+                justify-content: center;
+            }
+            .hud-overlay {
+                position: static;
+                padding: 12px 0 0;
+                pointer-events: auto;
+                gap: 12px;
+            }
+            .hud-top,
+            .hud-bottom {
+                display: grid;
+                grid-template-columns: 1fr;
+                gap: 12px;
+            }
+            .hud-bottom .flex,
+            .hud-top .flex {
+                flex-wrap: wrap;
+            }
+            .stat-card {
+                min-width: 0;
+                width: 100%;
+                border-radius: 12px;
+            }
+            #alertsContainer {
+                width: 100%;
+            }
+            footer {
+                flex-direction: column;
+                align-items: flex-start !important;
+                gap: 8px;
+            }
         }
     </style>
 </head>
