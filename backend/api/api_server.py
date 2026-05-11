@@ -329,7 +329,10 @@ _init_hazard_db()
 
 # ── Flask app ─────────────────────────────────────────────────────────────────
 app = Flask(__name__, static_folder=os.path.join(PROJECT_ROOT, "frontend"))
-CORS(app)
+CORS(app, resources={r"/api/*": {"origins": "*"}},
+     supports_credentials=False,
+     allow_headers=["Content-Type", "Authorization"],
+     methods=["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"])
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 
 # ── Register inference blueprint ───────────────────────────────────────────────
@@ -936,8 +939,11 @@ def _mjpeg_generator():
 
 @app.route('/api/stream')
 def stream():
-    return Response(_mjpeg_generator(),
+    resp = Response(_mjpeg_generator(),
                     mimetype='multipart/x-mixed-replace; boundary=frame')
+    # Explicit CORS for cross-origin <img> from Netlify frontend
+    resp.headers['Access-Control-Allow-Origin'] = '*'
+    return resp
 
 @app.route('/api/stream/status')
 def stream_status():
