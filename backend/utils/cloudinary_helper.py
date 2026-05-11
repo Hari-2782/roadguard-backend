@@ -50,10 +50,32 @@ def _init_cloudinary():
 # In-memory cache: filename -> cloudinary URL
 _url_cache = {}
 
+from concurrent.futures import ThreadPoolExecutor
+_upload_pool = ThreadPoolExecutor(max_workers=4)
+
+def _do_upload(buffer_bytes, filename, folder):
+    """Background task for uploading."""
+    try:
+        import cloudinary.uploader
+        public_id = f"{folder}/{os.path.splitext(filename)[0]}"
+        result = cloudinary.uploader.upload(
+            buffer_bytes,
+            public_id=public_id,
+            resource_type="image",
+            overwrite=True,
+            format="jpg"
+        )
+        url = result.get("secure_url", "")
+        if url:
+            _url_cache[filename] = url
+            logger.info(f"Async uploaded evidence: {filename} -> {url[:80]}...")
+    except Exception as e:
+        logger.error(f"Cloudinary background upload error for {filename}: {e}")
 
 def upload_evidence_image(frame, filename, folder="roadguard/evidence"):
     """
-    Upload an OpenCV frame (numpy array) to Cloudinary as a JPEG.
+    Upload an OpenCV frame (numpy array) to Cloudinary as a JPEG asynchronously.
+    Returns immediately so it doesn't block the video stream.
     
     Args:
         frame: OpenCV BGR image (numpy array)
@@ -61,43 +83,28 @@ def upload_evidence_image(frame, filename, folder="roadguard/evidence"):
         folder: Cloudinary folder path
     
     Returns:
-        str: The public_id or filename to store in DB.
-             If Cloudinary is active, also caches the URL.
+        str: The filename to store in DB, or None if failed.
     """
     if not _init_cloudinary():
         return None  # Caller should fall back to local cv2.imwrite
 
     try:
-        import cloudinary.uploader
         import cv2
         
-        # Encode frame to JPEG bytes
+        # Encode frame to JPEG bytes synchronously
         success, buffer = cv2.imencode('.jpg', frame, [cv2.IMWRITE_JPEG_QUALITY, 85])
         if not success:
             logger.error("Failed to encode frame to JPEG")
             return None
 
-        # Upload bytes to Cloudinary
-        public_id = f"{folder}/{os.path.splitext(filename)[0]}"
-        result = cloudinary.uploader.upload(
-            buffer.tobytes(),
-            public_id=public_id,
-            resource_type="image",
-            overwrite=True,
-            format="jpg"
-        )
+        # Offload the slow HTTP request to a background thread
+        _upload_pool.submit(_do_upload, buffer.tobytes(), filename, folder)
         
-        url = result.get("secure_url", "")
-        if url:
-            _url_cache[filename] = url
-            logger.info(f"Uploaded evidence: {filename} -> {url[:80]}...")
-            return filename  # Return the filename key (DB stores this)
-        else:
-            logger.error(f"Cloudinary upload returned no URL for {filename}")
-            return None
+        # Return filename immediately so DB logging can proceed
+        return filename
 
     except Exception as e:
-        logger.error(f"Cloudinary upload error for {filename}: {e}")
+        logger.error(f"Cloudinary upload initiation error for {filename}: {e}")
         return None
 
 

@@ -55,7 +55,7 @@ class PotholeDetector:
         cell_h = h_img / self._GRID
         cell_w = w_img / self._GRID
 
-        results = self.model(frame, imgsz=512, verbose=False)
+        results = self.model(frame, imgsz=512, verbose=False, conf=0.15)
 
         for r in results:
             for box in r.boxes:

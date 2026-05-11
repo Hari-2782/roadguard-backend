@@ -28,7 +28,7 @@ class HazardDetector:
         if self.model is None:
             return hazards
 
-        results = self.model(frame, imgsz=512, verbose=False)
+        results = self.model(frame, imgsz=512, verbose=False, conf=0.25)
         
         for r in results:
             boxes = r.boxes
