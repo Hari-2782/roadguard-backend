@@ -108,6 +108,16 @@ lane_model    = None
 road_model    = None
 MODELS_LOADED = False
 
+# ── Cloudinary helper for persistent evidence storage ─────────────────────────
+try:
+    from utils.cloudinary_helper import upload_evidence_image, get_evidence_url, is_cloudinary_active
+    print("[STARTUP] Cloudinary helper loaded")
+except ImportError as _cld_err:
+    print(f"[WARN] Cloudinary helper not available: {_cld_err}")
+    def upload_evidence_image(*a, **kw): return None
+    def get_evidence_url(*a, **kw): return None
+    def is_cloudinary_active(): return False
+
 
 # ── Piranesh's geometric filter for speed signs ──────────────────────────────
 def verify_speed_sign_circle(frame, x1, y1, x2, y2, cls_name, conf=0.5):
@@ -848,7 +858,9 @@ def _process_stream(source, vehicle_id='DEMO-CAR-01', video_gps=None):
                     # Save one evidence frame for this GPS pothole batch
                     ts_ph  = datetime.now()
                     ev_fn  = f"PH_{ts_ph.strftime('%Y%m%d_%H%M%S')}.jpg"
-                    cv2.imwrite(os.path.join(EVIDENCE_DIR, ev_fn), frame)
+                    # Try Cloudinary first, fall back to local
+                    if not upload_evidence_image(frame, ev_fn):
+                        cv2.imwrite(os.path.join(EVIDENCE_DIR, ev_fn), frame)
                     pconn = sqlite3.connect(POTHOLE_DB)
                     for p in potholes:
                         # Small random jitter so each detection appears as a
@@ -875,7 +887,9 @@ def _process_stream(source, vehicle_id='DEMO-CAR-01', video_gps=None):
                     ts_iso = ts_d.isoformat()
                     if len(hazards) > 0:
                         hz_fn = f"HZ_{ts_d.strftime('%Y%m%d_%H%M%S')}.jpg"
-                        cv2.imwrite(os.path.join(EVIDENCE_DIR, hz_fn), frame)
+                        # Try Cloudinary first, fall back to local
+                        if not upload_evidence_image(frame, hz_fn):
+                            cv2.imwrite(os.path.join(EVIDENCE_DIR, hz_fn), frame)
                         avg_hz_sev = float(sum(h.get('severity', 0.0) for h in hazards) / max(len(hazards), 1))
                         avg_hz_conf = float(sum(h.get('confidence', 0.0) for h in hazards) / max(len(hazards), 1))
                         hz_details = str([h.get('subtype', 'unknown') for h in hazards])
@@ -913,7 +927,9 @@ def _process_stream(source, vehicle_id='DEMO-CAR-01', video_gps=None):
                     if len(potholes) > 0:
                         # Save evidence frame for this pothole detection
                         ph_fn   = f"PH_{ts_d.strftime('%Y%m%d_%H%M%S')}.jpg"
-                        cv2.imwrite(os.path.join(EVIDENCE_DIR, ph_fn), frame)
+                        # Try Cloudinary first, fall back to local
+                        if not upload_evidence_image(frame, ph_fn):
+                            cv2.imwrite(os.path.join(EVIDENCE_DIR, ph_fn), frame)
                         max_sev = max(p['severity'] for p in potholes)
                         conn.execute(
                             "INSERT INTO events_v2 (ts,type,value,details,vehicle_id,image_path,risk_level) VALUES (?,?,?,?,?,?,?)",
@@ -1573,6 +1589,11 @@ def serve_static(path):
 
 @app.route('/evidence/<path:filename>')
 def serve_evidence(filename):
+    """Serve evidence: redirect to Cloudinary URL if available, else local."""
+    from flask import redirect
+    cloud_url = get_evidence_url(filename)
+    if cloud_url:
+        return redirect(cloud_url)
     return send_from_directory(EVIDENCE_DIR, filename)
 
 
