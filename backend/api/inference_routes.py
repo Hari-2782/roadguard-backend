@@ -15,16 +15,24 @@ def health():
     """Returns the health and status of all ML models"""
     from api.api_server import hazard_model, pothole_model, sign_model, lane_model, road_model, MODELS_LOADED
     
+    def _check(m):
+        if m is None:
+            return "not_loaded"
+        # Check if the wrapper's inner model actually loaded
+        if hasattr(m, 'model') and m.model is None:
+            return "wrapper_only"
+        return "ready"
+    
     status = {
         "status": "healthy",
         "device": DEVICE,
         "models_loaded": MODELS_LOADED,
         "models": {
-            "hazard": {"health": "ready" if hazard_model else "failed"},
-            "lane_detector": {"health": "ready" if lane_model else "failed"},
-            "pothole": {"health": "ready" if pothole_model else "failed"},
-            "road_segmenter": {"health": "ready" if road_model else "failed"},
-            "sign_detector": {"health": "ready" if sign_model else "failed"}
+            "hazard": {"health": _check(hazard_model)},
+            "lane_detector": {"health": _check(lane_model)},
+            "pothole": {"health": _check(pothole_model)},
+            "road_segmenter": {"health": _check(road_model)},
+            "sign_detector": {"health": _check(sign_model)}
         },
         "cache": {
             "size": 0,

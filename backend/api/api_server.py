@@ -28,7 +28,7 @@ if PROJECT_ROOT not in sys.path:
 if BACKEND_DIR not in sys.path:
     sys.path.insert(0, BACKEND_DIR)
 
-# ── Model imports (loaded eagerly at startup for Railway) ─────────────────────
+# ── Model imports (optimised for Railway's 512 MB RAM) ────────────────────────
 def _load_models():
     global hazard_model, pothole_model, sign_model, lane_model, road_model
     global speed_sign_model
@@ -37,67 +37,79 @@ def _load_models():
     if MODELS_LOADED:
         return
 
-    import torch
-    from ultralytics import YOLO
+    import gc, traceback, torch
 
-    # Wrap each model in try/except so one failure doesn't kill the rest
+    # Reduce memory: single thread, no grad
+    torch.set_num_threads(1)
+    torch.set_grad_enabled(False)
+    print(f"[STARTUP] PyTorch {torch.__version__}, threads=1, device=cpu")
+
+    # ── 1. Hazard detector (CRITICAL - 6 MB) ──────────────────────────────────
     try:
         from perception.hazard_detector import HazardDetector
-        print("[LOADING] Hazard model...")
-        hazard_model = HazardDetector(model_path=os.path.join(BACKEND_DIR, "models/hazard_model/best.pt"))
+        print("[LOADING] Hazard model (6 MB)...")
+        hazard_model = HazardDetector(
+            model_path=os.path.join(BACKEND_DIR, "models/hazard_model/best.pt"))
         print("[OK] Hazard model loaded")
     except Exception as e:
         print(f"[FAIL] Hazard model: {e}")
+        traceback.print_exc()
+    gc.collect()
 
+    # ── 2. Pothole detector (CRITICAL - 21 MB) ───────────────────────────────
     try:
         from perception.pothole_detector import PotholeDetector
-        print("[LOADING] Pothole model...")
-        pothole_model = PotholeDetector(model_path=os.path.join(BACKEND_DIR, "models/pothole_model/best.pt"))
+        print("[LOADING] Pothole model (21 MB)...")
+        pothole_model = PotholeDetector(
+            model_path=os.path.join(BACKEND_DIR, "models/pothole_model/best.pt"))
         print("[OK] Pothole model loaded")
     except Exception as e:
         print(f"[FAIL] Pothole model: {e}")
+        traceback.print_exc()
+    gc.collect()
 
+    # ── 3. Sign detector (use smaller best.pt = 6 MB, not bestS.pt = 84 MB) ──
     try:
         from perception.sign_detector import SignDetector
-        print("[LOADING] Sign model...")
-        sign_model = SignDetector(model_path=os.path.join(BACKEND_DIR, "models/sign_model/bestS.pt"))
+        # Use the smaller model to save ~80 MB RAM
+        small_sign = os.path.join(BACKEND_DIR, "models/sign_model/best.pt")
+        large_sign = os.path.join(BACKEND_DIR, "models/sign_model/bestS.pt")
+        sign_path = small_sign if os.path.exists(small_sign) else large_sign
+        print(f"[LOADING] Sign model ({os.path.basename(sign_path)})...")
+        sign_model = SignDetector(model_path=sign_path)
         print("[OK] Sign model loaded")
     except Exception as e:
         print(f"[FAIL] Sign model: {e}")
+        traceback.print_exc()
+    gc.collect()
 
+    # ── 4. Lane detector (22 MB - skip if low memory) ─────────────────────────
     try:
         from perception.lane_detector import LaneDetector
-        print("[LOADING] Lane model...")
-        lane_model = LaneDetector(model_path=os.path.join(BACKEND_DIR, "models/lane_model/lane_detector.pth"))
+        print("[LOADING] Lane model (22 MB)...")
+        lane_model = LaneDetector(
+            model_path=os.path.join(BACKEND_DIR, "models/lane_model/lane_detector.pth"))
         print("[OK] Lane model loaded")
     except Exception as e:
-        print(f"[FAIL] Lane model: {e}")
+        print(f"[FAIL] Lane model (non-critical): {e}")
+    gc.collect()
 
+    # ── 5. Road segmenter (0.14 MB - small but import can fail) ───────────────
     try:
         from perception.road_segmenter import RoadSegmenter
-        print("[LOADING] Road segmenter...")
-        road_model = RoadSegmenter(model_path=os.path.join(BACKEND_DIR, "models/road_segmentation/best.pth"))
+        print("[LOADING] Road segmenter (0.1 MB)...")
+        road_model = RoadSegmenter(
+            model_path=os.path.join(BACKEND_DIR, "models/road_segmentation/best.pth"))
         print("[OK] Road segmenter loaded")
     except Exception as e:
-        print(f"[FAIL] Road segmenter: {e}")
+        print(f"[FAIL] Road segmenter (non-critical, using fallback): {e}")
+    gc.collect()
 
     MODELS_LOADED = True
 
-    # Load Piranesh's speed/junction YOLO model (separate from friend's sign model)
-    try:
-        from sign_detector import YOLOSignDetector
-        _speed_weights = os.path.join(BACKEND_DIR, "runs", "detect", "runs", "detect",
-                                       "speed_junction_v1", "weights", "best.pt")
-        if os.path.exists(_speed_weights):
-            speed_sign_model = YOLOSignDetector(_speed_weights, conf=0.45, imgsz=640)
-            print("[OK] Speed/Junction sign model loaded")
-        else:
-            print(f"[WARN] Speed sign weights not found: {_speed_weights}")
-    except Exception as e:
-        print(f"[WARN] Could not load speed sign model: {e}")
-
-    loaded = sum(1 for m in [hazard_model, pothole_model, sign_model, lane_model, road_model] if m is not None)
-    print(f"[READY] {loaded}/5 models loaded successfully.")
+    loaded = sum(1 for m in [hazard_model, pothole_model, sign_model, lane_model, road_model]
+                 if m is not None and (not hasattr(m, 'model') or m.model is not None))
+    print(f"[READY] {loaded}/5 perception models loaded successfully.")
 
 # Global model handles (None until loaded)
 hazard_model  = None
@@ -383,17 +395,55 @@ except ImportError as e:
 # ── Eager model loading (load at startup so Railway has them ready) ────────────
 def _eager_load_models():
     """Load all ML models in a background thread at server startup."""
-    import time
-    time.sleep(2)  # Let gunicorn finish binding first
+    import time, traceback
+    time.sleep(5)  # Let gunicorn fully bind before loading heavy models
     print("[STARTUP] Loading ML models eagerly...")
     try:
         _load_models()
     except Exception as e:
         print(f"[STARTUP] Model loading error (non-fatal): {e}")
+        traceback.print_exc()
 
 _model_loader_thread = threading.Thread(target=_eager_load_models, daemon=True)
 _model_loader_thread.start()
-print("[STARTUP] Model loading thread started")
+print("[STARTUP] Model loading thread started (5s delay)")
+
+# ── Debug endpoint for Railway diagnostics ────────────────────────────────────
+@app.route('/api/debug/models', methods=['GET'])
+def debug_models():
+    """Detailed model loading diagnostics for Railway."""
+    import psutil
+    mem = psutil.virtual_memory()
+    proc = psutil.Process(os.getpid())
+    model_info = {}
+    for name, m in [("hazard", hazard_model), ("pothole", pothole_model),
+                    ("sign", sign_model), ("lane", lane_model), ("road", road_model)]:
+        if m is None:
+            model_info[name] = {"loaded": False, "inner_model": False}
+        else:
+            has_inner = hasattr(m, 'model') and m.model is not None
+            model_info[name] = {"loaded": True, "inner_model": has_inner}
+    return jsonify({
+        "models_loaded_flag": MODELS_LOADED,
+        "models": model_info,
+        "memory": {
+            "rss_mb": round(proc.memory_info().rss / 1024 / 1024, 1),
+            "system_total_mb": round(mem.total / 1024 / 1024, 1),
+            "system_available_mb": round(mem.available / 1024 / 1024, 1),
+            "system_percent": mem.percent
+        },
+        "backend_dir": BACKEND_DIR,
+        "model_files_exist": {
+            "hazard": os.path.exists(os.path.join(BACKEND_DIR, "models/hazard_model/best.pt")),
+            "pothole": os.path.exists(os.path.join(BACKEND_DIR, "models/pothole_model/best.pt")),
+            "sign_small": os.path.exists(os.path.join(BACKEND_DIR, "models/sign_model/best.pt")),
+            "sign_large": os.path.exists(os.path.join(BACKEND_DIR, "models/sign_model/bestS.pt")),
+            "lane": os.path.exists(os.path.join(BACKEND_DIR, "models/lane_model/lane_detector.pth")),
+            "road": os.path.exists(os.path.join(BACKEND_DIR, "models/road_segmentation/best.pth")),
+        },
+        "sys_path": sys.path[:5],
+        "cloudinary_active": is_cloudinary_active(),
+    })
 
 # ── Token store ───────────────────────────────────────────────────────────────
 tokens = {}  # token -> {user_id, role, expires}
