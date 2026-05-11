@@ -603,13 +603,14 @@
             if (!token) { window.location.href = '../index.html'; return; }
             document.getElementById('userName').textContent = userName;
             try {
-                const events = await API.getUserEvents();
+                const events = await API.getUserEvents(200);
+                const evidenceEvents = await API.getUserEvents(10, null, true);
                 const potholes = await API.getPotholes();
-                updateDashboard(events, potholes);
+                updateDashboard(events, potholes, evidenceEvents);
             } catch (err) { console.error('Dashboard error:', err); }
         }
 
-        function updateDashboard(events, potholes) {
+        function updateDashboard(events, potholes, evidenceEvents = null) {
             // 1. Map pins
             potholes.forEach(p => addMarkerToMap(p));
             updatePinCount();
@@ -647,14 +648,16 @@
             else if (avgRisk > 0.3) { rl.textContent = 'MEDIUM'; rl.className = 'text-xl font-bold text-yellow-400 mb-1'; }
             else { rl.textContent = 'LOW'; rl.className = 'text-xl font-bold text-emerald-400 mb-1'; }
 
-            // 4. Events table
+            // 4. Events table. Prefer rows with evidence so sign-only telemetry
+            // does not push useful View links out of the dashboard.
+            const tableEvents = (evidenceEvents || events.filter(e => e.image_path)).slice(0, 10);
             const tbody = document.getElementById('eventsTable');
             tbody.innerHTML = '';
-            if (!events.length) {
+            if (!tableEvents.length) {
                 tbody.innerHTML = '<tr><td colspan="4" class="py-4 text-center text-slate-500">No events yet</td></tr>';
                 return;
             }
-            events.slice(0, 10).forEach(e => {
+            tableEvents.forEach(e => {
                 const tr = document.createElement('tr');
                 tr.className = 'border-b border-slate-700 hover:bg-slate-700/50 transition';
                 let tc = 'text-slate-300';
@@ -677,8 +680,9 @@
         // Auto-refresh events + pothole map every 15 seconds
         setInterval(async () => {
             try {
-                const [events, potholes] = await Promise.all([
-                    API.getUserEvents(),
+                const [events, evidenceEvents, potholes] = await Promise.all([
+                    API.getUserEvents(200),
+                    API.getUserEvents(10, null, true),
                     API.getPotholes()
                 ]);
 
@@ -709,11 +713,12 @@
                 document.getElementById('countViolations').textContent = vCount;
                 document.getElementById('totalEvents').textContent = events.length;
                 tbody.innerHTML = '';
-                if (!events.length) {
+                const tableEvents = evidenceEvents.slice(0, 10);
+                if (!tableEvents.length) {
                     tbody.innerHTML = '<tr><td colspan="4" class="py-4 text-center text-slate-500">No events yet</td></tr>';
                     return;
                 }
-                events.slice(0, 10).forEach(e => {
+                tableEvents.forEach(e => {
                     const tr = document.createElement('tr');
                     tr.className = 'border-b border-slate-700 hover:bg-slate-700/50 transition';
                     let tc = 'text-slate-300';

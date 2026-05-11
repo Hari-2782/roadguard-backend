@@ -1491,10 +1491,20 @@ def get_events():
     conn = get_db(); cur = conn.cursor()
     ev_type = request.args.get('type')
     limit   = min(500, int(request.args.get('limit', 50)))
+    evidence_only = request.args.get('evidence_only') in ('1', 'true', 'yes')
     if ev_type:
-        cur.execute("SELECT * FROM events_v2 WHERE type=? ORDER BY ts DESC LIMIT ?", (ev_type, limit))
+        if evidence_only:
+            cur.execute(
+                "SELECT * FROM events_v2 WHERE type=? AND image_path IS NOT NULL AND image_path != '' ORDER BY ts DESC LIMIT ?",
+                (ev_type, limit),
+            )
+        else:
+            cur.execute("SELECT * FROM events_v2 WHERE type=? ORDER BY ts DESC LIMIT ?", (ev_type, limit))
     else:
-        cur.execute("SELECT * FROM events_v2 ORDER BY ts DESC LIMIT ?", (limit,))
+        if evidence_only:
+            cur.execute("SELECT * FROM events_v2 WHERE image_path IS NOT NULL AND image_path != '' ORDER BY ts DESC LIMIT ?", (limit,))
+        else:
+            cur.execute("SELECT * FROM events_v2 ORDER BY ts DESC LIMIT ?", (limit,))
     rows = [dict(r) for r in cur.fetchall()]; conn.close()
     return jsonify(rows)
 

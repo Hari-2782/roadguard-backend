@@ -137,10 +137,11 @@ const API = {
     },
 
     // Get User Events (Safety Analysis)
-    async getUserEvents(limit = null, type = null) {
+    async getUserEvents(limit = null, type = null, evidenceOnly = false) {
         const params = new URLSearchParams();
         if (limit !== null && limit !== undefined) params.set('limit', String(limit));
         if (type) params.set('type', String(type));
+        if (evidenceOnly) params.set('evidence_only', '1');
         const query = params.toString() ? `?${params.toString()}` : '';
 
         const res = await fetch(`${API_BASE}/user/events${query}`, {
