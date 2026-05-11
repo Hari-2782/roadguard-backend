@@ -4,15 +4,32 @@ import torch
 import torch.nn as nn
 from pathlib import Path
 import os
+import sys
 import logging
 
+# Robust import: try multiple paths for SimpleFastSCNN
+SimpleFastSCNN = None
+_import_errors = []
 try:
-    from modules.utils.road_model import SimpleFastSCNN
-except ImportError:
+    from utils.road_model import SimpleFastSCNN
+except ImportError as e:
+    _import_errors.append(f"from utils.road_model: {e}")
     try:
-        from utils.road_model import SimpleFastSCNN
-    except ImportError:
-        SimpleFastSCNN = None
+        from modules.utils.road_model import SimpleFastSCNN
+    except ImportError as e2:
+        _import_errors.append(f"from modules.utils.road_model: {e2}")
+        # Final fallback: try relative path
+        try:
+            _backend_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+            sys.path.insert(0, _backend_dir)
+            from utils.road_model import SimpleFastSCNN
+        except ImportError as e3:
+            _import_errors.append(f"from sys.path fallback: {e3}")
+            SimpleFastSCNN = None
+
+if SimpleFastSCNN is None and _import_errors:
+    logging.getLogger("RoadSegmenter").warning(
+        f"SimpleFastSCNN not importable, road segmentation will use fallback. Errors: {_import_errors}")
 
 class RoadSegmenter:
     """

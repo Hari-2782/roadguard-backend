@@ -28,7 +28,7 @@ if PROJECT_ROOT not in sys.path:
 if BACKEND_DIR not in sys.path:
     sys.path.insert(0, BACKEND_DIR)
 
-# ── Model imports (lazy — loaded on first start) ─────────────────────────────
+# ── Model imports (loaded eagerly at startup for Railway) ─────────────────────
 def _load_models():
     global hazard_model, pothole_model, sign_model, lane_model, road_model
     global speed_sign_model
@@ -39,22 +39,47 @@ def _load_models():
 
     import torch
     from ultralytics import YOLO
-    from perception.hazard_detector import HazardDetector
-    from perception.pothole_detector import PotholeDetector
-    from perception.sign_detector   import SignDetector
-    from perception.lane_detector   import LaneDetector
-    from perception.road_segmenter  import RoadSegmenter
 
-    print("[LOADING] Hazard model...")
-    hazard_model  = HazardDetector(model_path=os.path.join(BACKEND_DIR, "models/hazard_model/best.pt"))
-    print("[LOADING] Pothole model...")
-    pothole_model = PotholeDetector(model_path=os.path.join(BACKEND_DIR, "models/pothole_model/best.pt"))
-    print("[LOADING] Sign model...")
-    sign_model    = SignDetector(model_path=os.path.join(BACKEND_DIR, "models/sign_model/bestS.pt"))
-    print("[LOADING] Lane model...")
-    lane_model    = LaneDetector(model_path=os.path.join(BACKEND_DIR, "models/lane_model/lane_detector.pth"))
-    print("[LOADING] Road segmenter...")
-    road_model    = RoadSegmenter(model_path=os.path.join(BACKEND_DIR, "models/road_segmentation/best.pth"))
+    # Wrap each model in try/except so one failure doesn't kill the rest
+    try:
+        from perception.hazard_detector import HazardDetector
+        print("[LOADING] Hazard model...")
+        hazard_model = HazardDetector(model_path=os.path.join(BACKEND_DIR, "models/hazard_model/best.pt"))
+        print("[OK] Hazard model loaded")
+    except Exception as e:
+        print(f"[FAIL] Hazard model: {e}")
+
+    try:
+        from perception.pothole_detector import PotholeDetector
+        print("[LOADING] Pothole model...")
+        pothole_model = PotholeDetector(model_path=os.path.join(BACKEND_DIR, "models/pothole_model/best.pt"))
+        print("[OK] Pothole model loaded")
+    except Exception as e:
+        print(f"[FAIL] Pothole model: {e}")
+
+    try:
+        from perception.sign_detector import SignDetector
+        print("[LOADING] Sign model...")
+        sign_model = SignDetector(model_path=os.path.join(BACKEND_DIR, "models/sign_model/bestS.pt"))
+        print("[OK] Sign model loaded")
+    except Exception as e:
+        print(f"[FAIL] Sign model: {e}")
+
+    try:
+        from perception.lane_detector import LaneDetector
+        print("[LOADING] Lane model...")
+        lane_model = LaneDetector(model_path=os.path.join(BACKEND_DIR, "models/lane_model/lane_detector.pth"))
+        print("[OK] Lane model loaded")
+    except Exception as e:
+        print(f"[FAIL] Lane model: {e}")
+
+    try:
+        from perception.road_segmenter import RoadSegmenter
+        print("[LOADING] Road segmenter...")
+        road_model = RoadSegmenter(model_path=os.path.join(BACKEND_DIR, "models/road_segmentation/best.pth"))
+        print("[OK] Road segmenter loaded")
+    except Exception as e:
+        print(f"[FAIL] Road segmenter: {e}")
 
     MODELS_LOADED = True
 
@@ -65,13 +90,14 @@ def _load_models():
                                        "speed_junction_v1", "weights", "best.pt")
         if os.path.exists(_speed_weights):
             speed_sign_model = YOLOSignDetector(_speed_weights, conf=0.45, imgsz=640)
-            print("[LOADING] Speed/Junction sign model... OK")
+            print("[OK] Speed/Junction sign model loaded")
         else:
             print(f"[WARN] Speed sign weights not found: {_speed_weights}")
     except Exception as e:
         print(f"[WARN] Could not load speed sign model: {e}")
 
-    print("[READY]  All models loaded.")
+    loaded = sum(1 for m in [hazard_model, pothole_model, sign_model, lane_model, road_model] if m is not None)
+    print(f"[READY] {loaded}/5 models loaded successfully.")
 
 # Global model handles (None until loaded)
 hazard_model  = None
@@ -81,6 +107,7 @@ speed_sign_model = None   # Piranesh's speed/junction detector
 lane_model    = None
 road_model    = None
 MODELS_LOADED = False
+
 
 # ── Piranesh's geometric filter for speed signs ──────────────────────────────
 def verify_speed_sign_circle(frame, x1, y1, x2, y2, cls_name, conf=0.5):
@@ -342,6 +369,21 @@ try:
     print("[SUCCESS] Registered inference blueprint")
 except ImportError as e:
     print(f"[WARNING] Could not register inference blueprint: {e}")
+
+# ── Eager model loading (load at startup so Railway has them ready) ────────────
+def _eager_load_models():
+    """Load all ML models in a background thread at server startup."""
+    import time
+    time.sleep(2)  # Let gunicorn finish binding first
+    print("[STARTUP] Loading ML models eagerly...")
+    try:
+        _load_models()
+    except Exception as e:
+        print(f"[STARTUP] Model loading error (non-fatal): {e}")
+
+_model_loader_thread = threading.Thread(target=_eager_load_models, daemon=True)
+_model_loader_thread.start()
+print("[STARTUP] Model loading thread started")
 
 # ── Token store ───────────────────────────────────────────────────────────────
 tokens = {}  # token -> {user_id, role, expires}
