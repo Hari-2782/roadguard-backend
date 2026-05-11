@@ -28,7 +28,7 @@ if PROJECT_ROOT not in sys.path:
 if BACKEND_DIR not in sys.path:
     sys.path.insert(0, BACKEND_DIR)
 
-# ── Model imports (optimised for Railway's 512 MB RAM) ────────────────────────
+# ── Model imports (Optimised for 8GB DigitalOcean Droplet) ─────────────────────
 def _load_models():
     global hazard_model, pothole_model, sign_model, lane_model, road_model
     global speed_sign_model
@@ -39,71 +39,62 @@ def _load_models():
 
     import gc, traceback, torch
 
-    # Reduce memory: single thread, no grad
-    torch.set_num_threads(1)
+    # We are on an 8GB Droplet now, we can use multi-threading for faster inference
     torch.set_grad_enabled(False)
-    print(f"[STARTUP] PyTorch {torch.__version__}, threads=1, device=cpu")
+    print(f"[STARTUP] PyTorch {torch.__version__}, device=cpu (Droplet optimized)")
 
-    # ── 1. Hazard detector (CRITICAL - 6 MB) ──────────────────────────────────
+    # ── 1. Hazard detector ────────────────────────────────────────────────────
     try:
         from perception.hazard_detector import HazardDetector
-        print("[LOADING] Hazard model (6 MB)...")
+        print("[LOADING] Hazard model...")
         hazard_model = HazardDetector(
             model_path=os.path.join(BACKEND_DIR, "models/hazard_model/best.pt"))
         print("[OK] Hazard model loaded")
     except Exception as e:
         print(f"[FAIL] Hazard model: {e}")
         traceback.print_exc()
-    gc.collect()
 
-    # ── 2. Pothole detector (CRITICAL - 21 MB) ───────────────────────────────
+    # ── 2. Pothole detector ──────────────────────────────────────────────────
     try:
         from perception.pothole_detector import PotholeDetector
-        print("[LOADING] Pothole model (21 MB)...")
+        print("[LOADING] Pothole model...")
         pothole_model = PotholeDetector(
             model_path=os.path.join(BACKEND_DIR, "models/pothole_model/best.pt"))
         print("[OK] Pothole model loaded")
     except Exception as e:
         print(f"[FAIL] Pothole model: {e}")
         traceback.print_exc()
-    gc.collect()
 
-    # ── 3. Sign detector (use smaller best.pt = 6 MB, not bestS.pt = 84 MB) ──
+    # ── 3. Sign detector (using the accurate bestS.pt) ───────────────────────
     try:
         from perception.sign_detector import SignDetector
-        # Use the smaller model to save ~80 MB RAM
-        small_sign = os.path.join(BACKEND_DIR, "models/sign_model/best.pt")
-        large_sign = os.path.join(BACKEND_DIR, "models/sign_model/bestS.pt")
-        sign_path = small_sign if os.path.exists(small_sign) else large_sign
+        sign_path = os.path.join(BACKEND_DIR, "models/sign_model/bestS.pt")
         print(f"[LOADING] Sign model ({os.path.basename(sign_path)})...")
         sign_model = SignDetector(model_path=sign_path)
         print("[OK] Sign model loaded")
     except Exception as e:
         print(f"[FAIL] Sign model: {e}")
         traceback.print_exc()
-    gc.collect()
 
-    # ── 4. Lane detector (22 MB - skip if low memory) ─────────────────────────
+    # ── 4. Lane detector ──────────────────────────────────────────────────────
     try:
         from perception.lane_detector import LaneDetector
-        print("[LOADING] Lane model (22 MB)...")
+        print("[LOADING] Lane model...")
         lane_model = LaneDetector(
             model_path=os.path.join(BACKEND_DIR, "models/lane_model/lane_detector.pth"))
         print("[OK] Lane model loaded")
     except Exception as e:
-        print(f"[FAIL] Lane model (non-critical): {e}")
-    gc.collect()
+        print(f"[FAIL] Lane model: {e}")
 
-    # ── 5. Road segmenter (0.14 MB - small but import can fail) ───────────────
+    # ── 5. Road segmenter ─────────────────────────────────────────────────────
     try:
         from perception.road_segmenter import RoadSegmenter
-        print("[LOADING] Road segmenter (0.1 MB)...")
+        print("[LOADING] Road segmenter...")
         road_model = RoadSegmenter(
             model_path=os.path.join(BACKEND_DIR, "models/road_segmentation/best.pth"))
         print("[OK] Road segmenter loaded")
     except Exception as e:
-        print(f"[FAIL] Road segmenter (non-critical, using fallback): {e}")
-    gc.collect()
+        print(f"[FAIL] Road segmenter: {e}")
 
     MODELS_LOADED = True
 
