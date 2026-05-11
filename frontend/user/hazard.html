@@ -206,7 +206,7 @@ function renderEvidence() {
     grid.innerHTML = rows.slice(0, 30).map((h) => {
         const risk = getRisk(h);
         const path = String(h.image_path || '').replace(/[^a-zA-Z0-9._\-/]/g, '');
-        const src = `http://localhost:5000/evidence/${path}`;
+        const src = API.getEvidenceUrl(path);
         return `
             <div class="ev-card bg-slate-900 border border-slate-700 rounded-lg overflow-hidden" onclick="openModal('${src}')">
                 <div class="relative h-28 bg-black">

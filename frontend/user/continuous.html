@@ -432,8 +432,9 @@
                 progressBar.style.width = '30%';
                 progressText.textContent = 'Processing through Kalman Filter + Sliding Window...';
 
-                const res = await fetch("http://localhost:5000/api/behavior/upload_continuous", {
+                const res = await fetch(`${API_BASE}/behavior/upload_continuous`, {
                     method: "POST",
+                    headers: { 'Authorization': `Bearer ${API.getToken()}` },
                     body: formData
                 });
 

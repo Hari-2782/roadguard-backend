@@ -953,7 +953,7 @@ function applyEvFilter() {
         return `<div class="ev-card bg-slate-900 rounded-xl overflow-hidden border border-slate-700 select-none"
                      onclick="openLightbox(${i})">
             <div class="relative bg-black" style="height:100px;overflow:hidden">
-                <img src="http://localhost:5000/evidence/${safe}" loading="lazy" alt="Evidence"
+                <img src="${API.getEvidenceUrl(safe)}" loading="lazy" alt="Evidence"
                     class="w-full h-full object-cover opacity-90"
                     onerror="this.style.opacity='0.05'">
                 <span class="absolute top-1.5 left-1.5 text-xs px-1.5 py-0.5 rounded font-bold ${sev.cls}">${sev.label}</span>
@@ -995,7 +995,7 @@ function lbShow() {
     const conf = detConf(ev.severity ?? 0.5);
     const ts   = new Date(ev.ts || Date.now()).toLocaleString();
 
-    document.getElementById('lbImage').src = `http://localhost:5000/evidence/${escapeAttr(ev.image_path)}`;
+    document.getElementById('lbImage').src = API.getEvidenceUrl(escapeAttr(ev.image_path));
     document.getElementById('lbImage').alt = `Evidence PH-${ev.id ?? (lbIndex+1)}`;
 
     const badge = document.getElementById('lbSevBadge');

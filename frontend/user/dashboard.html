@@ -504,7 +504,7 @@
 
         async function deletePin(id) {
             if (!confirm('Delete this pothole pin?')) return;
-            const res = await fetch(`/api/potholes/${id}`, {
+            const res = await fetch(`${API_BASE}/potholes/${id}`, {
                 method: 'DELETE',
                 headers: { 'Authorization': `Bearer ${API.getToken()}` }
             });
@@ -524,7 +524,7 @@
             const entry = mapMarkers[id];
             if (!entry) return;
 
-            const res = await fetch(`/api/potholes/${id}`, {
+            const res = await fetch(`${API_BASE}/potholes/${id}`, {
                 method: 'PATCH',
                 headers: {
                     'Content-Type': 'application/json',
@@ -573,7 +573,7 @@
             const { lat, lng } = e.latlng;
             const vehicle_id = localStorage.getItem('currentVehicle') || 'manual';
 
-            const res = await fetch('/api/potholes/add', {
+            const res = await fetch(`${API_BASE}/potholes/add`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -668,7 +668,7 @@
                     <td class="py-3 font-mono text-xs text-slate-400">${new Date(e.ts).toLocaleTimeString()}</td>
                     <td class="py-3 font-medium ${tc}">${e.type.replace('_', ' ').toUpperCase()}</td>
                     <td class="py-3">${rb}</td>
-                    <td class="py-3">${e.image_path ? `<a href="http://localhost:5000/evidence/${e.image_path}" target="_blank" class="text-indigo-400 hover:text-indigo-300 text-xs underline">View</a>` : '-'}</td>`;
+                    <td class="py-3">${e.image_path ? `<a href="${API.getEvidenceUrl(e.image_path)}" target="_blank" class="text-indigo-400 hover:text-indigo-300 text-xs underline">View</a>` : '-'}</td>`;
                 tbody.appendChild(tr);
             });
         }
@@ -727,7 +727,7 @@
                         <td class="py-3 font-mono text-xs text-slate-400">${new Date(e.ts).toLocaleTimeString()}</td>
                         <td class="py-3 font-medium ${tc}">${(e.type || '').replace('_', ' ').toUpperCase()}</td>
                         <td class="py-3">${rb}</td>
-                        <td class="py-3">${e.image_path ? `<a href="http://localhost:5000/evidence/${e.image_path}" target="_blank" class="text-indigo-400 hover:text-indigo-300 text-xs underline">View</a>` : '-'}</td>`;
+                        <td class="py-3">${e.image_path ? `<a href="${API.getEvidenceUrl(e.image_path)}" target="_blank" class="text-indigo-400 hover:text-indigo-300 text-xs underline">View</a>` : '-'}</td>`;
                     tbody.appendChild(tr);
                 });
             } catch (_) {}

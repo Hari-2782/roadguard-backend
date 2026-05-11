@@ -19,6 +19,8 @@ import tempfile
 from collections import defaultdict, deque
 import subprocess
 
+cv2.setUseOptimized(True)
+
 # ── Path setup ──────────────────────────────────────────────────────────────
 API_DIR      = os.path.dirname(os.path.abspath(__file__))
 BACKEND_DIR  = os.path.dirname(API_DIR)
@@ -111,15 +113,19 @@ lane_model    = None
 road_model    = None
 MODELS_LOADED = False
 
-# ── Cloudinary helper for persistent evidence storage ─────────────────────────
-try:
-    from utils.cloudinary_helper import upload_evidence_image, get_evidence_url, is_cloudinary_active
-    print("[STARTUP] Cloudinary helper loaded")
-except ImportError as _cld_err:
-    print(f"[WARN] Cloudinary helper not available: {_cld_err}")
-    def upload_evidence_image(*a, **kw): return None
-    def get_evidence_url(*a, **kw): return None
-    def is_cloudinary_active(): return False
+# ── Evidence storage setup ──────────────────────────────────────────────────
+def save_evidence(frame, filename):
+    """Saves evidence locally to the evidence directory."""
+    try:
+        path = os.path.join(EVIDENCE_DIR, filename)
+        cv2.imwrite(path, frame)
+        return True
+    except Exception as e:
+        print(f"[EVIDENCE] Save error: {e}")
+        return False
+
+def get_evidence_url(filename):
+    return None
 
 
 # ── Piranesh's geometric filter for speed signs ──────────────────────────────
@@ -198,6 +204,7 @@ def verify_speed_sign_circle(frame, x1, y1, x2, y2, cls_name, conf=0.5):
 
 # ── Streaming state ──────────────────────────────────────────────────────────
 latest_frame   = None       # latest annotated JPEG bytes
+latest_frame_id = 0
 latest_raw_frame = None
 stream_lock    = threading.Lock()
 stream_running = False
@@ -213,6 +220,7 @@ stream_stats   = {          # sent to frontend via /api/stream/status
     "lane_crossing": False,
     "speed_limit": None,
     "frame": 0,
+    "fps": 0.0,
     "source": "—",
     "location": None,         # (lat, lon) extracted from video, or None
 }
@@ -433,7 +441,6 @@ def debug_models():
             "road": os.path.exists(os.path.join(BACKEND_DIR, "models/road_segmentation/best.pth")),
         },
         "sys_path": sys.path[:5],
-        "cloudinary_active": is_cloudinary_active(),
     })
 
 # ── Token store ───────────────────────────────────────────────────────────────
@@ -442,11 +449,12 @@ tokens = {}  # token -> {user_id, role, expires}
 def get_current_user():
     """Get current user from Authorization header token."""
     auth = request.headers.get('Authorization', '')
+    token = request.args.get('token', '')
     if auth.startswith('Bearer '):
         token = auth[7:]
-        info = tokens.get(token)
-        if info and datetime.fromisoformat(info['expires']) > datetime.now():
-            return info
+    info = tokens.get(token)
+    if info and datetime.fromisoformat(info['expires']) > datetime.now():
+        return info
     return None
 
 def require_auth(f):
@@ -571,8 +579,27 @@ def _capture_frames(cap):
         frame = cv2.resize(frame, (960, 540))
         
 # ── Detection thread ──────────────────────────────────────────────────────────
-def _process_stream(source, vehicle_id='DEMO-CAR-01', video_gps=None):
-    global latest_frame, stream_running, stream_stats, latest_raw_frame
+def _process_stream(source, vehicle_id='DEMO-CAR-01', video_gps=None, record=False):
+    global latest_frame, latest_frame_id, stream_running, stream_stats, latest_raw_frame
+
+    frame_size = (
+        int(os.environ.get("ROADGUARD_STREAM_WIDTH", "640")),
+        int(os.environ.get("ROADGUARD_STREAM_HEIGHT", "360")),
+    )
+    target_capture_fps = int(os.environ.get("ROADGUARD_CAPTURE_FPS", "60"))
+    road_interval = int(os.environ.get("ROADGUARD_ROAD_INTERVAL", "8"))
+    hazard_interval = int(os.environ.get("ROADGUARD_HAZARD_INTERVAL", "4"))
+    pothole_interval = int(os.environ.get("ROADGUARD_POTHOLE_INTERVAL", "4"))
+    sign_interval = int(os.environ.get("ROADGUARD_SIGN_INTERVAL", "5"))
+    speed_sign_interval = int(os.environ.get("ROADGUARD_SPEED_SIGN_INTERVAL", "6"))
+    lane_interval = int(os.environ.get("ROADGUARD_LANE_INTERVAL", "4"))
+    out_video = None
+    if record:
+        rec_fn = f"REC_{datetime.now().strftime('%Y%m%d_%H%M%S')}.mp4"
+        rec_path = os.path.join(UPLOAD_FOLDER, rec_fn)
+        fourcc = cv2.VideoWriter_fourcc(*'mp4v')
+        out_video = cv2.VideoWriter(rec_path, fourcc, 20.0, frame_size)
+        print(f"[STREAM] Recording started: {rec_path}")
 
     if video_gps:
         stream_stats['location'] = list(video_gps)
@@ -589,6 +616,11 @@ def _process_stream(source, vehicle_id='DEMO-CAR-01', video_gps=None):
 
     try:
         cap = cv2.VideoCapture(source)
+        cap.set(cv2.CAP_PROP_BUFFERSIZE, 1)
+        if isinstance(source, int):
+            cap.set(cv2.CAP_PROP_FRAME_WIDTH, frame_size[0])
+            cap.set(cv2.CAP_PROP_FRAME_HEIGHT, frame_size[1])
+            cap.set(cv2.CAP_PROP_FPS, target_capture_fps)
         # capture_thread = threading.Thread(
         #     target=_capture_frames,
         #     args=(cap,),
@@ -613,6 +645,7 @@ def _process_stream(source, vehicle_id='DEMO-CAR-01', video_gps=None):
     road_mask_cache = None
     last_log = 0.0
     last_det_log = 0.0
+    fps_ema = 0.0
 
     BOTTOM_GATE    = 0.65
     ROAD_OVERLAP_TH = 0.15
@@ -628,22 +661,61 @@ def _process_stream(source, vehicle_id='DEMO-CAR-01', video_gps=None):
 
     src_label = str(source) if isinstance(source, str) else "Live Camera"
     print(f"[STREAM] Starting: {src_label}")
+    print(
+        f"[STREAM] Fast mode: {frame_size[0]}x{frame_size[1]} capture={target_capture_fps}fps "
+        f"intervals road={road_interval}, hazard={hazard_interval}, pothole={pothole_interval}, "
+        f"sign={sign_interval}, lane={lane_interval}",
+        flush=True,
+    )
+
+    capture_stop = threading.Event()
+    capture_state = {"ok": True, "frame": None, "id": 0}
+    capture_lock = threading.Lock()
+    use_threaded_capture = isinstance(source, int)
+
+    def _camera_reader():
+        while stream_running and not capture_stop.is_set() and cap.isOpened():
+            ret, raw = cap.read()
+            if not ret:
+                with capture_lock:
+                    capture_state["ok"] = False
+                break
+            raw = cv2.resize(raw, frame_size)
+            with capture_lock:
+                capture_state["frame"] = raw
+                capture_state["id"] += 1
+
+    if use_threaded_capture:
+        threading.Thread(target=_camera_reader, daemon=True).start()
 
     try:
+        last_capture_id = -1
         while stream_running and cap.isOpened():
             t_start = time.time()
-            ret, frame = cap.read()
-
-            if not ret:
-                print(f"[STREAM] End of video or read error at frame {frame_n}", flush=True)
-                break
-
-            frame = cv2.resize(frame, (960, 540))
+            if use_threaded_capture:
+                with capture_lock:
+                    ret = capture_state["ok"]
+                    capture_id = capture_state["id"]
+                    raw_frame = None if capture_state["frame"] is None else capture_state["frame"].copy()
+                if not ret:
+                    print(f"[STREAM] Camera read error at frame {frame_n}", flush=True)
+                    break
+                if raw_frame is None or capture_id == last_capture_id:
+                    time.sleep(0.001)
+                    continue
+                last_capture_id = capture_id
+                frame = raw_frame
+            else:
+                ret, frame = cap.read()
+                if not ret:
+                    print(f"[STREAM] End of video or read error at frame {frame_n}", flush=True)
+                    break
+                frame = cv2.resize(frame, frame_size)
             frame_n += 1
             h, w = frame.shape[:2]
 
             # ── Road mask (every 3 frames) ──────────────────────────────────
-            if frame_n % 6 == 0 or road_mask_cache is None:
+            if frame_n % road_interval == 0 or road_mask_cache is None:
                 t_rm = time.time()
                 road_mask_cache = road_model.segment(frame)
                 if frame_n % 30 == 0:
@@ -660,7 +732,7 @@ def _process_stream(source, vehicle_id='DEMO-CAR-01', video_gps=None):
                 frame = cv2.addWeighted(overlay, 0.35, frame, 0.65, 0)
 
             # ── Hazard detection (every 3 frames) ─────────────────────────────
-            if frame_n % 3 == 0:
+            if frame_n % hazard_interval == 0:
                 hazards = hazard_model.detect(frame)
                 hazards = road_model.filter_detections(hazards, road_mask, threshold=0.15)
                 last_hazards = hazards
@@ -668,7 +740,7 @@ def _process_stream(source, vehicle_id='DEMO-CAR-01', video_gps=None):
                 hazards = last_hazards
 
             # ── Pothole detection (every 3 frames) ────────────────────────────
-            if frame_n % 3 == 0:
+            if frame_n % pothole_interval == 0:
                 potholes = pothole_model.detect(frame)
                 potholes = road_model.filter_detections(potholes, road_mask, threshold=0.15)
                 last_potholes = potholes
@@ -676,7 +748,7 @@ def _process_stream(source, vehicle_id='DEMO-CAR-01', video_gps=None):
                 potholes = last_potholes
 
             # ── Sign detection (every 4 frames) ───────────────────────────────
-            if frame_n % 2 == 0:
+            if frame_n % sign_interval == 0:
 
                 signs = sign_model.detect(frame)
 
@@ -694,7 +766,7 @@ def _process_stream(source, vehicle_id='DEMO-CAR-01', video_gps=None):
 
 
             # ── Speed/Junction sign detection (Piranesh's model, every 4 frames)
-            if frame_n % 4 == 0 and speed_sign_model is not None:
+            if False:
                 raw_speed_signs = speed_sign_model.detect(frame)
                 # Apply circle filter ONLY to Speed-XX classes (reject diamond signs)
                 speed_signs = []
@@ -713,7 +785,7 @@ def _process_stream(source, vehicle_id='DEMO-CAR-01', video_gps=None):
             speed_limit = None
 
             # ── Speed/Junction sign detection (Piranesh's model, every 4 frames)
-            if frame_n % 4 == 0 and speed_sign_model is not None:
+            if frame_n % speed_sign_interval == 0 and speed_sign_model is not None:
                 raw_speed_signs = speed_sign_model.detect(frame)
                 # Apply circle filter ONLY to Speed-XX classes (reject diamond signs)
                 speed_signs = []
@@ -729,7 +801,7 @@ def _process_stream(source, vehicle_id='DEMO-CAR-01', video_gps=None):
                 speed_signs = last_speed_signs
 
             # ── Lane detection (every 3 frames) ───────────────────────────────
-            if frame_n % 3 == 0:
+            if frame_n % lane_interval == 0:
                 lane_status = lane_model.detect(frame)
                 last_lane_status = lane_status
             else:
@@ -852,10 +924,18 @@ def _process_stream(source, vehicle_id='DEMO-CAR-01', video_gps=None):
                     pass
 
             # ── Encode & share frame ─────────────────────────────────────────
+            # Save to recording if active
+            if out_video is not None:
+                out_video.write(frame)
+
             # Ensure the stream handler (which reads latest_frame) gets the newly drawn frame
             _, buf = cv2.imencode('.jpg', frame, [cv2.IMWRITE_JPEG_QUALITY, 55])
+            elapsed = max(time.time() - t_start, 1e-6)
+            instant_fps = 1.0 / elapsed
+            fps_ema = instant_fps if fps_ema <= 0 else (0.85 * fps_ema + 0.15 * instant_fps)
             with stream_lock:
                 latest_frame = buf.tobytes()
+                latest_frame_id += 1
                 stream_stats.update({
                     "risk": round(float(risk), 3),
                     "risk_level": risk_level,
@@ -865,6 +945,7 @@ def _process_stream(source, vehicle_id='DEMO-CAR-01', video_gps=None):
                     "lane_crossing": bool(lane_status.get('is_crossing')),
                     "speed_limit": speed_limit,
                     "frame": frame_n,
+                    "fps": round(float(fps_ema), 1),
                     "source": src_label,
                     "risk_components": {
                         "hazard": float(haz_score),
@@ -899,9 +980,7 @@ def _process_stream(source, vehicle_id='DEMO-CAR-01', video_gps=None):
                     # Save one evidence frame for this GPS pothole batch
                     ts_ph  = datetime.now()
                     ev_fn  = f"PH_{ts_ph.strftime('%Y%m%d_%H%M%S')}.jpg"
-                    # Try Cloudinary first, fall back to local
-                    if not upload_evidence_image(frame, ev_fn):
-                        cv2.imwrite(os.path.join(EVIDENCE_DIR, ev_fn), frame)
+                    save_evidence(frame, ev_fn)
                     pconn = sqlite3.connect(POTHOLE_DB)
                     for p in potholes:
                         # Small random jitter so each detection appears as a
@@ -928,9 +1007,7 @@ def _process_stream(source, vehicle_id='DEMO-CAR-01', video_gps=None):
                     ts_iso = ts_d.isoformat()
                     if len(hazards) > 0:
                         hz_fn = f"HZ_{ts_d.strftime('%Y%m%d_%H%M%S')}.jpg"
-                        # Try Cloudinary first, fall back to local
-                        if not upload_evidence_image(frame, hz_fn):
-                            cv2.imwrite(os.path.join(EVIDENCE_DIR, hz_fn), frame)
+                        save_evidence(frame, hz_fn)
                         avg_hz_sev = float(sum(h.get('severity', 0.0) for h in hazards) / max(len(hazards), 1))
                         avg_hz_conf = float(sum(h.get('confidence', 0.0) for h in hazards) / max(len(hazards), 1))
                         hz_details = str([h.get('subtype', 'unknown') for h in hazards])
@@ -968,9 +1045,7 @@ def _process_stream(source, vehicle_id='DEMO-CAR-01', video_gps=None):
                     if len(potholes) > 0:
                         # Save evidence frame for this pothole detection
                         ph_fn   = f"PH_{ts_d.strftime('%Y%m%d_%H%M%S')}.jpg"
-                        # Try Cloudinary first, fall back to local
-                        if not upload_evidence_image(frame, ph_fn):
-                            cv2.imwrite(os.path.join(EVIDENCE_DIR, ph_fn), frame)
+                        save_evidence(frame, ph_fn)
                         max_sev = max(p['severity'] for p in potholes)
                         conn.execute(
                             "INSERT INTO events_v2 (ts,type,value,details,vehicle_id,image_path,risk_level) VALUES (?,?,?,?,?,?,?)",
@@ -998,45 +1073,60 @@ def _process_stream(source, vehicle_id='DEMO-CAR-01', video_gps=None):
                 except Exception as dbe:
                     print(f"[DB DET] {dbe}")
 
-            # Enforce playback speed (cap at ~30 FPS for recorded videos)
-            elapsed = time.time() - t_start
-            if frame_n % 30 == 0:
-                print(f"[STREAM] Frame {frame_n} processed in {elapsed:.3f}s", flush=True)
-            delay = max(0.0, (1.0 / 30.0) - elapsed)
-            if delay > 0:
-                time.sleep(delay)
+            # Enforce playback speed only for recorded videos (non-integer source)
+            if not isinstance(source, int):
+                elapsed = time.time() - t_start
+                delay = max(0.0, (1.0 / 30.0) - elapsed)
+                if delay > 0:
+                    time.sleep(delay)
+            
+            if frame_n % 100 == 0:
+                print(f"[STREAM] Frame {frame_n} processed. FPS: {1.0/(time.time()-t_start):.1f}", flush=True)
 
     except Exception as ex:
         print(f"[STREAM ERROR] {ex}")
     finally:
+        capture_stop.set()
         cap.release()
+        if out_video is not None:
+            out_video.release()
         stream_running = False
         print("[STREAM] Stopped.")
 
 
 def _mjpeg_generator():
-    global latest_frame
+    global latest_frame, latest_frame_id
+    last_sent_id = -1
+    placeholder_bytes = None
     while True:
         with stream_lock:
             frame_bytes = latest_frame
+            frame_id = latest_frame_id
         if frame_bytes is None:
             # Send a black placeholder until stream starts
-            placeholder = np.zeros((360, 640, 3), dtype=np.uint8)
-            cv2.putText(placeholder, "Waiting for video source ...",
-                        (80, 180), cv2.FONT_HERSHEY_SIMPLEX, 0.8, (100,100,100), 2)
-            _, buf = cv2.imencode('.jpg', placeholder)
-            frame_bytes = buf.tobytes()
+            if placeholder_bytes is None:
+                placeholder = np.zeros((360, 640, 3), dtype=np.uint8)
+                cv2.putText(placeholder, "Waiting for video source ...",
+                            (80, 180), cv2.FONT_HERSHEY_SIMPLEX, 0.8, (100,100,100), 2)
+                _, buf = cv2.imencode('.jpg', placeholder)
+                placeholder_bytes = buf.tobytes()
+            frame_bytes = placeholder_bytes
+        elif frame_id == last_sent_id:
+            time.sleep(0.005)
+            continue
+        last_sent_id = frame_id
         yield (
             b'--frame\r\n'
             b'Content-Type: image/jpeg\r\n\r\n' +
             frame_bytes + b'\r\n'
         )
-        time.sleep(0.01)
+        time.sleep(0.001)
 
 
 # ── Routes ────────────────────────────────────────────────────────────────────
 
 @app.route('/api/stream')
+@require_auth
 def stream():
     resp = Response(_mjpeg_generator(),
                     mimetype='multipart/x-mixed-replace; boundary=frame')
@@ -1045,6 +1135,7 @@ def stream():
     return resp
 
 @app.route('/api/stream/status')
+@require_auth
 def stream_status():
     with stream_lock:
         stats = dict(stream_stats)
@@ -1052,8 +1143,9 @@ def stream_status():
     return jsonify(stats)
 
 @app.route('/api/stream/start', methods=['POST'])
+@require_auth
 def stream_start():
-    global stream_running, stream_thread, latest_frame
+    global stream_running, stream_thread, latest_frame, latest_frame_id
     data   = request.get_json(force=True)
     source = data.get('source', 0)
     if isinstance(source, str) and source.isdigit():
@@ -1063,18 +1155,22 @@ def stream_start():
         return jsonify({'error': 'Already running. Stop first.'}), 400
 
     vehicle_id = data.get('vehicle_id', 'DEMO-CAR-01')
+    record     = data.get('record', False)
     latest_frame   = None
+    latest_frame_id += 1
     stream_running = True
-    stream_thread  = threading.Thread(target=_process_stream, args=(source, vehicle_id), daemon=True)
+    stream_thread  = threading.Thread(target=_process_stream, args=(source, vehicle_id, None, record), daemon=True)
     stream_thread.start()
-    return jsonify({'ok': True, 'source': str(source)})
+    return jsonify({'ok': True, 'source': str(source), 'recording': record})
 
 @app.route('/api/stream/stop', methods=['POST'])
+@require_auth
 def stream_stop():
-    global stream_running, latest_frame
+    global stream_running, latest_frame, latest_frame_id
     stream_running = False
     with stream_lock:
         latest_frame = None
+        latest_frame_id += 1
     stream_stats.update({
         "risk": 0.0, "risk_level": "IDLE", "hazards": 0,
         "potholes": 0, "signs": [], "lane_crossing": False,
@@ -1092,6 +1188,7 @@ def system_stop():
     return stream_stop()
 
 @app.route('/api/upload/video', methods=['POST'])
+@require_auth
 def upload_video():
     global stream_running, stream_thread, latest_frame, road_monitor_running
     if 'file' not in request.files:
@@ -1209,6 +1306,7 @@ def get_me():
 
 # ── Data endpoints ────────────────────────────────────────────────────────────
 @app.route('/api/user/events')
+@require_auth
 def get_events():
     conn = get_db(); cur = conn.cursor()
     ev_type = request.args.get('type')
@@ -1221,6 +1319,7 @@ def get_events():
     return jsonify(rows)
 
 @app.route('/api/potholes')
+@require_auth
 def get_potholes():
     if not os.path.exists(POTHOLE_DB): return jsonify([])
     conn = sqlite3.connect(POTHOLE_DB); conn.row_factory = sqlite3.Row; cur = conn.cursor()
@@ -1440,6 +1539,7 @@ def user_vehicle_events(id):
 # ── Admin Endpoints ───────────────────────────────────────────────────────────
 
 @app.route('/api/summary')
+@require_admin
 def global_summary():
     conn = get_db(); cur = conn.cursor()
     cur.execute("SELECT COUNT(*) FROM users WHERE role='user'")
@@ -1697,6 +1797,7 @@ def _insert_behavior_events(events):
 
 
 @app.route("/api/behavior/history", methods=["GET"])
+@require_auth
 def behavior_history():
     try:
         conn = get_db()
@@ -1737,6 +1838,7 @@ def behavior_history():
         return jsonify({"ok": False, "error": str(e), "events": []}), 500
 
 @app.route("/api/behavior/upload_csv", methods=["POST"])
+@require_auth
 def upload_sensor_csv():
     global behavior_model
     if 'file' not in request.files:
@@ -1837,6 +1939,7 @@ def upload_sensor_csv():
 import pandas as pd
 
 @app.route("/api/behavior/upload_continuous", methods=["POST"])
+@require_auth
 def upload_continuous_csv():
     """
     Accepts a large continuous CSV file. Applies:

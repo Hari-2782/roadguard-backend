@@ -1,7 +1,11 @@
 // Road Monitor - API Helper
 // Handles authentication and API calls
 
-const API_BASE = 'http://localhost:5000/api';
+const API_BASE = window.ROADGUARD_API_BASE || (
+    window.location.protocol.startsWith('http')
+        ? `${window.location.origin}/api`
+        : 'http://localhost:5000/api'
+);
 
 const API = {
     // Get stored token
@@ -17,6 +21,35 @@ const API = {
             headers['Authorization'] = `Bearer ${token}`;
         }
         return headers;
+    },
+
+    getStreamUrl() {
+        const token = this.getToken();
+        const tokenParam = token ? `&token=${encodeURIComponent(token)}` : '';
+        return `${API_BASE}/stream?t=${Date.now()}${tokenParam}`;
+    },
+
+    getEvidenceUrl(path) {
+        if (!path) return '';
+        const base = API_BASE.replace(/\/api$/, '');
+        return `${base}/evidence/${encodeURIComponent(path)}`;
+    },
+
+    hasRequiredRole(requiredRole) {
+        const token = this.getToken();
+        const role = localStorage.getItem('role');
+        if (!token || !role) return false;
+        if (!requiredRole) return true;
+        return role === requiredRole;
+    },
+
+    redirectForRole() {
+        const role = localStorage.getItem('role');
+        if (role === 'admin') {
+            window.location.href = '../admin/dashboard.html';
+        } else {
+            window.location.href = '../index.html';
+        }
     },
 
     // Login
@@ -118,8 +151,9 @@ const API = {
 
     // Get Potholes Map Data
     async getPotholes() {
-        // Public endpoint
-        const res = await fetch(`${API_BASE}/potholes`);
+        const res = await fetch(`${API_BASE}/potholes`, {
+            headers: this.getHeaders()
+        });
         return res.json();
     },
 
@@ -304,3 +338,68 @@ const API = {
         return res.json();
     }
 };
+
+function requireAuth(requiredRole) {
+    const path = window.location.pathname.replace(/\\/g, '/');
+    const fallback = path.includes('/admin/') ? '../index.html' : '../index.html';
+
+    if (!API.hasRequiredRole(requiredRole)) {
+        if (requiredRole === 'user' && localStorage.getItem('role') === 'admin') {
+            window.location.href = '../admin/dashboard.html';
+        } else {
+            window.location.href = fallback;
+        }
+        return false;
+    }
+    return true;
+}
+
+(function guardProtectedPages() {
+    const path = window.location.pathname.replace(/\\/g, '/');
+    if (path.includes('/admin/')) {
+        requireAuth('admin');
+    } else if (path.includes('/user/')) {
+        requireAuth('user');
+    }
+})();
+
+function normalizeUserSidebar() {
+    const path = window.location.pathname.replace(/\\/g, '/');
+    if (!path.includes('/user/')) return;
+
+    const current = path.split('/').pop() || 'dashboard.html';
+    const active = 'flex items-center gap-3 px-3 py-2 rounded-lg bg-indigo-600/10 text-indigo-400';
+    const inactive = 'flex items-center gap-3 px-3 py-2 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition';
+    const icon = {
+        dashboard: '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path>',
+        realtime: '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 10l4.553-2.276A1 1 0 0121 8.723v6.554a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"></path>',
+        analysis: '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 12l3-3 3 3 4-4M8 21l4-4 4 4M3 4h18M4 4h16v12a1 1 0 01-1 1H5a1 1 0 01-1-1V4z"></path>',
+        sensors: '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path>',
+        vehicles: '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17a2 2 0 11-4 0 2 2 0 014 0zM19 17a2 2 0 11-4 0 2 2 0 014 0z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16V6a1 1 0 00-1-1H4a1 1 0 00-1 1v10l2 2h6l2-2zm0 0h4a1 1 0 001-1v-4l-3-5h-2"></path>',
+        map: '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7"></path>'
+    };
+    const items = [
+        ['dashboard.html', 'Risk Dashboard', icon.dashboard],
+        ['realtime.html', 'Live Detection', icon.realtime],
+        ['analysis.html', 'Analysis & Upload', icon.analysis],
+        ['sensors.html', 'Driver Behavior', icon.sensors],
+        ['vehicles.html', 'My Vehicles', icon.vehicles],
+        ['pothole.html', 'Pothole Analytics', icon.map],
+        ['hazard.html', 'Hazard Analytics', icon.map]
+    ];
+
+    const nav = document.querySelector('aside nav');
+    if (!nav) return;
+    nav.innerHTML = items.map(([href, label, svg]) => `
+        <a href="${href}" class="${current === href ? active : inactive}">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">${svg}</svg>
+            <span${current === href ? ' class="font-medium"' : ''}>${label}</span>
+        </a>
+    `).join('');
+}
+
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', normalizeUserSidebar);
+} else {
+    normalizeUserSidebar();
+}

@@ -9,7 +9,9 @@ function requireAuth(requiredRole) {
         return false;
     }
     if (requiredRole && role !== requiredRole) {
-        window.location.href = '../index.html';
+        window.location.href = requiredRole === 'user' && role === 'admin'
+            ? '../admin/dashboard.html'
+            : '../index.html';
         return false;
     }
     return true;

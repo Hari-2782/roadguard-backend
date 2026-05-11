@@ -1,0 +1,444 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Real-Time Detection - RoadGuard AI</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        body {
+            font-family: 'Outfit', sans-serif;
+            background-color: #0f172a;
+            color: #f8fafc;
+            overflow: hidden;
+        }
+        .glass {
+            background: rgba(30, 41, 59, 0.7);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        .stream-container {
+            position: relative;
+            width: 100%;
+            height: calc(100vh - 80px);
+            background: #000;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 24px;
+            overflow: hidden;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+        }
+        .stream-feed {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+        .hud-overlay {
+            position: absolute;
+            inset: 0;
+            pointer-events: none;
+            padding: 24px;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+        }
+        .hud-top {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+        }
+        .hud-bottom {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-end;
+        }
+        .badge-live {
+            background: #ef4444;
+            animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+        }
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: .5; }
+        }
+        .stat-card {
+            padding: 12px 20px;
+            border-radius: 16px;
+            min-width: 140px;
+        }
+        .risk-meter {
+            height: 6px;
+            width: 100%;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 3px;
+            overflow: hidden;
+            margin-top: 8px;
+        }
+        .risk-fill {
+            height: 100%;
+            width: 0%;
+            transition: width 0.3s ease, background-color 0.3s ease;
+        }
+        .alert-toast {
+            animation: slideIn 0.3s ease-out;
+        }
+        @keyframes slideIn {
+            from { transform: translateX(100%); opacity: 0; }
+            to { transform: translateX(0); opacity: 1; }
+        }
+    </style>
+</head>
+<body class="bg-slate-900 min-h-screen text-slate-100">
+    <aside class="sidebar w-64 min-h-screen p-4 fixed left-0 top-0 bg-slate-900 border-r border-slate-800">
+        <div class="flex items-center gap-3 mb-8 px-2">
+            <div class="w-10 h-10 bg-indigo-600 rounded-xl flex items-center justify-center shadow-lg shadow-indigo-500/20">
+                <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                </svg>
+            </div>
+            <div>
+                <h2 class="font-bold text-white text-lg">RoadGuard AI</h2>
+                <p class="text-xs text-slate-400">Safety Intelligence Suite</p>
+            </div>
+        </div>
+
+        <nav class="space-y-1"></nav>
+
+        <div class="absolute bottom-4 left-4 right-4">
+            <div class="p-3 rounded-xl bg-slate-800/50 mb-3 border border-slate-700">
+                <p class="text-xs text-slate-400">Logged in as</p>
+                <p class="text-sm text-white font-medium truncate" id="userName">User</p>
+            </div>
+            <button onclick="API.logout()" class="w-full py-2 px-4 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 text-sm font-medium transition flex items-center justify-center gap-2">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"></path>
+                </svg>
+                Logout
+            </button>
+        </div>
+    </aside>
+
+    <div class="ml-64 p-4 lg:p-6">
+    <!-- Header Navigation -->
+    <header class="flex justify-between items-center mb-6 px-2">
+        <div class="flex items-center gap-3">
+            <div class="w-10 h-10 bg-indigo-600 rounded-xl flex items-center justify-center shadow-lg shadow-indigo-500/20">
+                <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                </svg>
+            </div>
+            <div>
+                <h1 class="text-xl font-bold tracking-tight">RoadGuard <span class="text-indigo-400">Pro</span></h1>
+                <p class="text-[10px] text-slate-400 uppercase tracking-widest font-semibold">Real-Time Intelligence</p>
+            </div>
+        </div>
+
+        <div class="flex items-center gap-4">
+            <select id="vehicleSelect" class="glass px-4 py-2 rounded-xl border-slate-700 text-sm text-slate-200 bg-slate-900/80 focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                <option value="DEMO-CAR-01">DEMO-CAR-01</option>
+            </select>
+            <div class="flex items-center gap-2 glass px-4 py-2 rounded-xl border-slate-700">
+                <input type="checkbox" id="recordToggle" class="w-4 h-4 rounded border-slate-700 bg-slate-800 text-indigo-600 focus:ring-indigo-500">
+                <label for="recordToggle" class="text-xs font-semibold text-slate-400 uppercase tracking-wider">Record</label>
+            </div>
+            <button onclick="toggleLive()" id="liveBtn" class="px-6 py-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl font-semibold transition-all shadow-lg shadow-indigo-600/20 flex items-center gap-2">
+                <span id="liveBtnIcon" class="w-2 h-2 rounded-full bg-white"></span>
+                <span id="liveBtnText">Start Real-Time</span>
+            </button>
+            <button onclick="location.href='dashboard.html'" class="p-2 text-slate-400 hover:text-white transition">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"></path>
+                </svg>
+            </button>
+        </div>
+    </header>
+
+    <!-- Main Live Container -->
+    <main class="stream-container border border-slate-800">
+        <img id="videoFeed" src="" alt="Camera Feed" class="stream-feed hidden">
+        <div id="placeholder" class="absolute inset-0 flex flex-col items-center justify-center bg-slate-900/50">
+            <div class="w-20 h-20 bg-slate-800 rounded-full flex items-center justify-center mb-4 border border-slate-700">
+                <svg class="w-10 h-10 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"></path>
+                </svg>
+            </div>
+            <p class="text-slate-400 font-medium">Camera standby. Click "Start Real-Time" to begin.</p>
+        </div>
+
+        <!-- HUD Overlay -->
+        <div class="hud-overlay">
+            <div class="hud-top">
+                <div class="flex flex-col gap-3">
+                    <div id="liveBadge" class="hidden flex items-center gap-2 px-3 py-1 glass rounded-full text-[10px] font-bold uppercase tracking-widest text-white border-red-500/50">
+                        <span class="w-2 h-2 rounded-full badge-live"></span>
+                        Live Signal
+                    </div>
+                    <div id="riskCard" class="stat-card glass flex flex-col gap-1 border-indigo-500/20">
+                        <span class="text-[10px] uppercase font-bold text-slate-400 tracking-wider">Overall Risk</span>
+                        <div class="flex items-baseline gap-2">
+                            <span id="riskValue" class="text-2xl font-bold">0.00</span>
+                            <span id="riskLevel" class="text-xs font-semibold text-emerald-400">LOW</span>
+                        </div>
+                        <div class="risk-meter">
+                            <div id="riskFill" class="risk-fill bg-emerald-500"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="flex flex-col gap-3 items-end">
+                    <div class="stat-card glass border-indigo-500/20 text-right">
+                        <span class="text-[10px] uppercase font-bold text-slate-400 tracking-wider">FPS</span>
+                        <p id="fpsValue" class="text-2xl font-bold font-mono text-indigo-400">00</p>
+                    </div>
+                    <div id="signBadge" class="hidden glass p-3 rounded-2xl border-amber-500/30 flex items-center gap-3">
+                        <div class="w-10 h-10 bg-amber-500/20 rounded-xl flex items-center justify-center text-amber-500">
+                            <svg class="w-6 h-6" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2L1 21h22L12 2zm0 3.45l8.27 14.3H3.73L12 5.45zM11 16h2v2h-2v-2zm0-7h2v5h-2V9z"/></svg>
+                        </div>
+                        <div>
+                            <p class="text-[10px] uppercase font-bold text-amber-500 tracking-wider">Active Sign</p>
+                            <p id="activeSign" class="font-bold">None</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="hud-bottom">
+                <div class="flex gap-4">
+                    <div class="stat-card glass border-indigo-500/20">
+                        <span class="text-[10px] uppercase font-bold text-slate-400 tracking-wider">Potholes</span>
+                        <p id="potholeCount" class="text-3xl font-bold">0</p>
+                    </div>
+                    <div class="stat-card glass border-indigo-500/20">
+                        <span class="text-[10px] uppercase font-bold text-slate-400 tracking-wider">Hazards</span>
+                        <p id="hazardCount" class="text-3xl font-bold">0</p>
+                    </div>
+                    <div class="stat-card glass border-indigo-500/20">
+                        <span class="text-[10px] uppercase font-bold text-slate-400 tracking-wider">Lane Status</span>
+                        <p id="laneStatus" class="text-xl font-bold text-emerald-400">STABLE</p>
+                    </div>
+                </div>
+
+                <div id="alertsContainer" class="flex flex-col gap-2 w-64">
+                    <!-- Alerts will appear here -->
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <footer class="mt-6 flex justify-between items-center text-slate-500 text-xs px-2">
+        <p>© 2024 RoadGuard AI Safety Suite | Real-Time Inference v3.2</p>
+        <div class="flex gap-4">
+            <span id="connStatus" class="flex items-center gap-1">
+                <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+                Engine Ready
+            </span>
+            <span>Latency: <span id="latencyValue">0</span>ms</span>
+        </div>
+    </footer>
+    </div>
+
+    <script src="../js/api.js"></script>
+    <script>
+        let isRunning = false;
+        let pollInterval = null;
+        const videoFeed = document.getElementById('videoFeed');
+        const placeholder = document.getElementById('placeholder');
+        const liveBadge = document.getElementById('liveBadge');
+        
+        async function toggleLive() {
+            if (isRunning) {
+                await stopDetection();
+            } else {
+                await startDetection();
+            }
+        }
+
+        async function startDetection() {
+            const vehicleId = document.getElementById('vehicleSelect').value || "DEMO-CAR-01";
+            const isRecording = document.getElementById('recordToggle').checked;
+            const liveBtn = document.getElementById('liveBtn');
+            const liveBtnText = document.getElementById('liveBtnText');
+            const liveBtnIcon = document.getElementById('liveBtnIcon');
+
+            try {
+                const res = await fetch(`${API_BASE}/stream/start`, {
+                    method: 'POST',
+                    headers: API.getHeaders(),
+                    body: JSON.stringify({ source: 0, vehicle_id: vehicleId, record: isRecording })
+                }).then(r => r.json());
+
+                if (res.ok) {
+                    isRunning = true;
+                    videoFeed.src = API.getStreamUrl();
+                    videoFeed.classList.remove('hidden');
+                    placeholder.classList.add('hidden');
+                    liveBadge.classList.remove('hidden');
+                    
+                    liveBtn.classList.remove('bg-indigo-600', 'hover:bg-indigo-500');
+                    liveBtn.classList.add('bg-rose-600', 'hover:bg-rose-500');
+                    liveBtnText.textContent = "Stop Session";
+                    liveBtnIcon.classList.add('badge-live');
+
+                    startPolling();
+                } else {
+                    alert("Error: " + (res.error || "Could not start camera"));
+                }
+            } catch (err) {
+                alert("Connection failed. Is the backend running?");
+            }
+        }
+
+        async function stopDetection() {
+            try {
+                await fetch(`${API_BASE}/stream/stop`, {
+                    method: 'POST',
+                    headers: API.getHeaders()
+                });
+            } catch (e) {}
+
+            isRunning = false;
+            clearInterval(pollInterval);
+            videoFeed.src = "";
+            videoFeed.classList.add('hidden');
+            placeholder.classList.remove('hidden');
+            liveBadge.classList.add('hidden');
+
+            const liveBtn = document.getElementById('liveBtn');
+            const liveBtnText = document.getElementById('liveBtnText');
+            const liveBtnIcon = document.getElementById('liveBtnIcon');
+            
+            liveBtn.classList.add('bg-indigo-600', 'hover:bg-indigo-500');
+            liveBtn.classList.remove('bg-rose-600', 'hover:bg-rose-500');
+            liveBtnText.textContent = "Start Real-Time";
+            liveBtnIcon.classList.remove('badge-live');
+            
+            resetHUD();
+        }
+
+        function startPolling() {
+            pollInterval = setInterval(async () => {
+                try {
+                    const start = Date.now();
+                    const stats = await fetch(`${API_BASE}/stream/status`, {
+                        headers: API.getHeaders()
+                    }).then(r => r.json());
+                    const latency = Date.now() - start;
+                    document.getElementById('latencyValue').textContent = latency;
+                    updateHUD(stats);
+                } catch (e) {}
+            }, 200);
+        }
+
+        function updateHUD(s) {
+            // Risk
+            const risk = s.risk || 0;
+            const level = s.risk_level || 'IDLE';
+            document.getElementById('riskValue').textContent = risk.toFixed(2);
+            document.getElementById('riskLevel').textContent = level;
+            
+            const fill = document.getElementById('riskFill');
+            fill.style.width = (risk * 100) + '%';
+            
+            if (level === 'CRITICAL' || level === 'HIGH') {
+                fill.className = 'risk-fill bg-rose-500';
+                document.getElementById('riskLevel').className = 'text-xs font-semibold text-rose-400';
+            } else if (level === 'MEDIUM') {
+                fill.className = 'risk-fill bg-amber-500';
+                document.getElementById('riskLevel').className = 'text-xs font-semibold text-amber-400';
+            } else {
+                fill.className = 'risk-fill bg-emerald-500';
+                document.getElementById('riskLevel').className = 'text-xs font-semibold text-emerald-400';
+            }
+
+            // Stats
+            document.getElementById('potholeCount').textContent = s.potholes || 0;
+            document.getElementById('hazardCount').textContent = s.hazards || 0;
+            document.getElementById('fpsValue').textContent = s.running ? (s.fps || 0).toFixed(1) : "00";
+
+            // Lane
+            const lane = document.getElementById('laneStatus');
+            if (s.lane_crossing) {
+                lane.textContent = "DEVIATING";
+                lane.className = "text-xl font-bold text-rose-400";
+            } else {
+                lane.textContent = s.running ? "STABLE" : "IDLE";
+                lane.className = "text-xl font-bold text-emerald-400";
+            }
+
+            // Signs
+            const signBadge = document.getElementById('signBadge');
+            if (s.signs && s.signs.length > 0) {
+                signBadge.classList.remove('hidden');
+                document.getElementById('activeSign').textContent = s.signs[0];
+            } else {
+                signBadge.classList.add('hidden');
+            }
+
+            // Alerts
+            if (s.potholes > 0 || s.hazards > 0 || s.lane_crossing) {
+                addAlert(s);
+            }
+        }
+
+        let lastAlertTime = 0;
+        function addAlert(s) {
+            const now = Date.now();
+            if (now - lastAlertTime < 3000) return; // Rate limit alerts
+            lastAlertTime = now;
+
+            const container = document.getElementById('alertsContainer');
+            const alert = document.createElement('div');
+            alert.className = 'alert-toast glass p-3 rounded-xl border-l-4 border-rose-500 text-xs shadow-xl';
+            
+            let msg = "Caution: ";
+            if (s.lane_crossing) msg += "Lane Departure! ";
+            if (s.hazards > 0) msg += `${s.hazards} Hazard(s) detected. `;
+            if (s.potholes > 0) msg += `Pothole detected. `;
+
+            alert.innerHTML = `
+                <div class="flex justify-between items-start mb-1">
+                    <span class="font-bold text-rose-400 uppercase">Alert</span>
+                    <span class="text-slate-500 font-mono">${new Date().toLocaleTimeString([], {hour:'2-digit', minute:'2-digit', second:'2-digit'})}</span>
+                </div>
+                <p class="text-slate-200 font-medium">${msg}</p>
+            `;
+
+            container.prepend(alert);
+            if (container.children.length > 3) container.lastChild.remove();
+            
+            setTimeout(() => {
+                alert.style.opacity = '0';
+                alert.style.transform = 'translateX(20px)';
+                alert.style.transition = 'all 0.5s ease';
+                setTimeout(() => alert.remove(), 500);
+            }, 6000);
+        }
+
+        function resetHUD() {
+            document.getElementById('riskValue').textContent = "0.00";
+            document.getElementById('riskLevel').textContent = "IDLE";
+            document.getElementById('riskFill').style.width = '0%';
+            document.getElementById('potholeCount').textContent = "0";
+            document.getElementById('hazardCount').textContent = "0";
+            document.getElementById('fpsValue').textContent = "00";
+            document.getElementById('laneStatus').textContent = "IDLE";
+            document.getElementById('signBadge').classList.add('hidden');
+        }
+
+        // Initialize vehicle list
+        async function loadVehicles() {
+            document.getElementById('userName').textContent = localStorage.getItem('userName') || 'User';
+            try {
+                const vehicles = await API.getUserVehicles();
+                const sel = document.getElementById('vehicleSelect');
+                if (vehicles && vehicles.length > 0) {
+                    sel.innerHTML = vehicles.map(v => `<option value="${v.vehicle_id}">${v.vehicle_id} - ${v.label || 'Vehicle'}</option>`).join('');
+                }
+            } catch (e) {}
+        }
+        loadVehicles();
+    </script>
+</body>
+</html>

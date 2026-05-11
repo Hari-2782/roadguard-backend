@@ -507,7 +507,7 @@
             formData.append('video_60', recording60Blob, 'recording_60.webm');
 
             try {
-                const res = await fetch('http://localhost:5000/api/admin/calibration/upload', {
+                const res = await fetch(`${API_BASE}/admin/calibration/upload`, {
                     method: 'POST',
                     headers: { 'Authorization': `Bearer ${API.getToken()}` },
                     body: formData
@@ -557,7 +557,7 @@
             formData.append('video_60', video60);
 
             try {
-                const res = await fetch('http://localhost:5000/api/admin/calibration/upload', {
+                const res = await fetch(`${API_BASE}/admin/calibration/upload`, {
                     method: 'POST',
                     headers: { 'Authorization': `Bearer ${API.getToken()}` },
                     body: formData

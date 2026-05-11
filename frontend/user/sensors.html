@@ -650,7 +650,9 @@
             }
 
             try {
-                const res = await fetch('http://localhost:5000/api/behavior/history');
+                const res = await fetch(`${API_BASE}/behavior/history`, {
+                    headers: API.getHeaders()
+                });
                 const data = await res.json();
 
                 if (!data.ok) {
@@ -796,7 +798,11 @@
             formData.append("lon", currentPos.lon);
 
             try {
-                const res = await fetch("http://localhost:5000/api/behavior/upload_csv", { method: "POST", body: formData });
+                const res = await fetch(`${API_BASE}/behavior/upload_csv`, {
+                    method: "POST",
+                    headers: { 'Authorization': `Bearer ${API.getToken()}` },
+                    body: formData
+                });
                 const data = await res.json();
                 document.getElementById('resultLoading').classList.add('hidden');
                 if (data.error) { alert("Error: " + data.error); document.getElementById('resultInitial').classList.remove('hidden'); return; }
@@ -899,7 +905,11 @@
 
             try {
                 pb.style.width = '30%'; pt.textContent = 'Processing through Kalman Filter + Sliding Window...';
-                const res = await fetch("http://localhost:5000/api/behavior/upload_continuous", { method: "POST", body: formData });
+                const res = await fetch(`${API_BASE}/behavior/upload_continuous`, {
+                    method: "POST",
+                    headers: { 'Authorization': `Bearer ${API.getToken()}` },
+                    body: formData
+                });
                 pb.style.width = '80%'; pt.textContent = 'Rendering visualizations...';
                 const data = await res.json();
                 if (data.error) { alert("Error: " + data.error); resetContUpload(); return; }
