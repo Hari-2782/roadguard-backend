@@ -202,6 +202,10 @@
                 <span id="liveBtnIcon" class="w-2 h-2 rounded-full bg-white"></span>
                 <span id="liveBtnText">Start Real-Time</span>
             </button>
+            <button onclick="togglePhoneCamera()" id="phoneBtn" class="px-5 py-2 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl font-semibold transition-all shadow-lg shadow-emerald-600/20 flex items-center justify-center gap-2">
+                <span id="phoneBtnIcon" class="w-2 h-2 rounded-full bg-white"></span>
+                <span id="phoneBtnText">Phone Camera</span>
+            </button>
             <button onclick="location.href='dashboard.html'" class="p-2 text-slate-400 hover:text-white transition">
                 <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"></path>
@@ -213,6 +217,8 @@
     <!-- Main Live Container -->
     <main class="stream-container border border-slate-800">
         <img id="videoFeed" src="" alt="Camera Feed" class="stream-feed hidden">
+        <video id="phoneVideo" autoplay playsinline muted class="hidden"></video>
+        <canvas id="phoneCanvas" class="hidden"></canvas>
         <div id="placeholder" class="absolute inset-0 flex flex-col items-center justify-center bg-slate-900/50">
             <div class="w-20 h-20 bg-slate-800 rounded-full flex items-center justify-center mb-4 border border-slate-700">
                 <svg class="w-10 h-10 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -297,8 +303,14 @@
     <script src="../js/api.js"></script>
     <script>
         let isRunning = false;
+        let isPhoneRunning = false;
+        let phoneStream = null;
+        let phoneLoopTimer = null;
+        let phoneFrameBusy = false;
         let pollInterval = null;
         const videoFeed = document.getElementById('videoFeed');
+        const phoneVideo = document.getElementById('phoneVideo');
+        const phoneCanvas = document.getElementById('phoneCanvas');
         const placeholder = document.getElementById('placeholder');
         const liveBadge = document.getElementById('liveBadge');
         
@@ -311,6 +323,7 @@
         }
 
         async function startDetection() {
+            if (isPhoneRunning) await stopPhoneCamera();
             const vehicleId = document.getElementById('vehicleSelect').value || "DEMO-CAR-01";
             const isRecording = document.getElementById('recordToggle').checked;
             const liveBtn = document.getElementById('liveBtn');
@@ -370,6 +383,123 @@
             liveBtnIcon.classList.remove('badge-live');
             
             resetHUD();
+        }
+
+        async function togglePhoneCamera() {
+            if (isPhoneRunning) {
+                await stopPhoneCamera();
+            } else {
+                await startPhoneCamera();
+            }
+        }
+
+        async function startPhoneCamera() {
+            if (isRunning) await stopDetection();
+            if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+                alert('Camera access is not available in this browser.');
+                return;
+            }
+            if (location.protocol !== 'https:' && !['localhost', '127.0.0.1'].includes(location.hostname)) {
+                alert('Phone camera needs HTTPS. Use your Cloudflare Tunnel HTTPS URL on the phone.');
+                return;
+            }
+
+            try {
+                phoneStream = await navigator.mediaDevices.getUserMedia({
+                    video: {
+                        facingMode: { ideal: 'environment' },
+                        width: { ideal: 640 },
+                        height: { ideal: 360 }
+                    },
+                    audio: false
+                });
+                phoneVideo.srcObject = phoneStream;
+                await phoneVideo.play();
+
+                isPhoneRunning = true;
+                placeholder.classList.add('hidden');
+                videoFeed.classList.remove('hidden');
+                liveBadge.classList.remove('hidden');
+                updatePhoneButton(true);
+                startPhoneLoop();
+            } catch (err) {
+                alert(`Could not open phone camera: ${err.message || err}`);
+            }
+        }
+
+        async function stopPhoneCamera() {
+            isPhoneRunning = false;
+            phoneFrameBusy = false;
+            if (phoneLoopTimer) {
+                clearInterval(phoneLoopTimer);
+                phoneLoopTimer = null;
+            }
+            if (phoneStream) {
+                phoneStream.getTracks().forEach(track => track.stop());
+                phoneStream = null;
+            }
+            phoneVideo.srcObject = null;
+            videoFeed.src = '';
+            videoFeed.classList.add('hidden');
+            placeholder.classList.remove('hidden');
+            liveBadge.classList.add('hidden');
+            updatePhoneButton(false);
+            resetHUD();
+        }
+
+        function updatePhoneButton(active) {
+            const phoneBtn = document.getElementById('phoneBtn');
+            const phoneBtnText = document.getElementById('phoneBtnText');
+            const phoneBtnIcon = document.getElementById('phoneBtnIcon');
+            phoneBtn.classList.toggle('bg-rose-600', active);
+            phoneBtn.classList.toggle('hover:bg-rose-500', active);
+            phoneBtn.classList.toggle('bg-emerald-600', !active);
+            phoneBtn.classList.toggle('hover:bg-emerald-500', !active);
+            phoneBtnText.textContent = active ? 'Stop Phone' : 'Phone Camera';
+            phoneBtnIcon.classList.toggle('badge-live', active);
+        }
+
+        function startPhoneLoop() {
+            phoneLoopTimer = setInterval(sendPhoneFrame, 350);
+            sendPhoneFrame();
+        }
+
+        async function sendPhoneFrame() {
+            if (!isPhoneRunning || phoneFrameBusy || phoneVideo.readyState < 2) return;
+            phoneFrameBusy = true;
+
+            try {
+                const width = 640;
+                const height = Math.round((phoneVideo.videoHeight || 360) * (width / (phoneVideo.videoWidth || 640)));
+                phoneCanvas.width = width;
+                phoneCanvas.height = height;
+                const ctx = phoneCanvas.getContext('2d');
+                ctx.drawImage(phoneVideo, 0, 0, width, height);
+
+                const blob = await new Promise(resolve => phoneCanvas.toBlob(resolve, 'image/jpeg', 0.65));
+                if (!blob) return;
+
+                const formData = new FormData();
+                formData.append('frame', blob, 'phone-frame.jpg');
+                formData.append('vehicle_id', document.getElementById('vehicleSelect').value || 'PHONE-CAM');
+
+                const started = Date.now();
+                const res = await fetch(`${API_BASE}/stream/browser-frame`, {
+                    method: 'POST',
+                    headers: { 'Authorization': `Bearer ${API.getToken()}` },
+                    body: formData
+                });
+                const data = await res.json();
+                document.getElementById('latencyValue').textContent = Date.now() - started;
+                if (!data.ok) throw new Error(data.error || 'Frame processing failed');
+
+                videoFeed.src = data.image;
+                updateHUD(data.stats || {});
+            } catch (err) {
+                console.warn('Phone frame failed:', err);
+            } finally {
+                phoneFrameBusy = false;
+            }
         }
 
         function startPolling() {

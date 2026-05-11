@@ -224,6 +224,19 @@ stream_stats   = {          # sent to frontend via /api/stream/status
     "source": "—",
     "location": None,         # (lat, lon) extracted from video, or None
 }
+browser_stream = {
+    "frame": 0,
+    "road_mask": None,
+    "hazards": [],
+    "potholes": [],
+    "signs": [],
+    "lane_status": {},
+    "last_det_log": 0.0,
+    "last_log": 0.0,
+    "prev_risk": 0.0,
+    "fps": 0.0,
+    "last_seen": 0.0,
+}
 
 DB_PATH       = os.path.join(BACKEND_DIR, "db/new.db")
 EVIDENCE_DIR  = os.path.join(BACKEND_DIR, "evidence")
@@ -1123,6 +1136,158 @@ def _mjpeg_generator():
         time.sleep(0.001)
 
 
+def _decode_uploaded_frame():
+    if "frame" not in request.files:
+        return None
+    data = request.files["frame"].read()
+    arr = np.frombuffer(data, np.uint8)
+    return cv2.imdecode(arr, cv2.IMREAD_COLOR)
+
+
+def _process_browser_frame(frame, vehicle_id="PHONE-CAM"):
+    global latest_frame, latest_frame_id, stream_stats, browser_stream
+
+    _load_models()
+    frame_size = (
+        int(os.environ.get("ROADGUARD_STREAM_WIDTH", "640")),
+        int(os.environ.get("ROADGUARD_STREAM_HEIGHT", "360")),
+    )
+    frame = cv2.resize(frame, frame_size)
+    frame_n = int(browser_stream.get("frame", 0)) + 1
+    browser_stream["frame"] = frame_n
+    t_start = time.time()
+
+    road_i = int(os.environ.get("ROADGUARD_ROAD_INTERVAL", "8"))
+    haz_i = int(os.environ.get("ROADGUARD_HAZARD_INTERVAL", "4"))
+    pot_i = int(os.environ.get("ROADGUARD_POTHOLE_INTERVAL", "4"))
+    sign_i = int(os.environ.get("ROADGUARD_SIGN_INTERVAL", "5"))
+    lane_i = int(os.environ.get("ROADGUARD_LANE_INTERVAL", "4"))
+
+    road_mask = browser_stream.get("road_mask")
+    if road_model is not None and (road_mask is None or frame_n % road_i == 0):
+        road_mask = road_model.segment(frame)
+        browser_stream["road_mask"] = road_mask
+    if road_mask is None:
+        road_mask = np.ones((frame.shape[0], frame.shape[1]), dtype=np.uint8) * 255
+
+    hazards = browser_stream.get("hazards", [])
+    if hazard_model is not None and frame_n % haz_i == 0:
+        hazards = hazard_model.detect(frame)
+        if road_model is not None:
+            hazards = road_model.filter_detections(hazards, road_mask, threshold=0.15)
+        browser_stream["hazards"] = hazards
+
+    potholes = browser_stream.get("potholes", [])
+    if pothole_model is not None and frame_n % pot_i == 0:
+        potholes = pothole_model.detect(frame)
+        if road_model is not None:
+            potholes = road_model.filter_detections(potholes, road_mask, threshold=0.15)
+        browser_stream["potholes"] = potholes
+
+    signs = browser_stream.get("signs", [])
+    if sign_model is not None and frame_n % sign_i == 0:
+        signs = sign_model.detect(frame)
+        if road_model is not None:
+            signs = road_model.filter_detections(signs, road_mask, threshold=0.05)
+        browser_stream["signs"] = signs
+
+    lane_status = browser_stream.get("lane_status", {})
+    if lane_model is not None and frame_n % lane_i == 0:
+        lane_status = lane_model.detect(frame)
+        browser_stream["lane_status"] = lane_status
+
+    img_h = frame.shape[0]
+    haz_score = 0.0
+    for det in hazards:
+        x1, y1, x2, y2 = map(int, det["bbox"])
+        risk_box = min(max((y2 / img_h - 0.65) / 0.35, 0.0), 1.0)
+        haz_score = max(haz_score, risk_box)
+        color = (0, 0, 255) if risk_box >= 0.45 else (0, 165, 255) if risk_box >= 0.20 else (0, 255, 0)
+        cv2.rectangle(frame, (x1, y1), (x2, y2), color, 2)
+        cv2.putText(frame, "HAZARD", (x1, max(y1 - 8, 12)), cv2.FONT_HERSHEY_SIMPLEX, 0.55, color, 2)
+
+    for det in potholes:
+        x1, y1, x2, y2 = map(int, det["bbox"])
+        cv2.rectangle(frame, (x1, y1), (x2, y2), (0, 200, 255), 2)
+        cv2.putText(frame, f"Pothole {det.get('severity', 0.0):.2f}", (x1, max(y1 - 6, 12)),
+                    cv2.FONT_HERSHEY_SIMPLEX, 0.55, (0, 200, 255), 2)
+
+    for det in signs:
+        x1, y1, x2, y2 = map(int, det["bbox"])
+        cv2.rectangle(frame, (x1, y1), (x2, y2), (0, 255, 80), 2)
+        cv2.putText(frame, det.get("subtype", "sign"), (x1, max(y1 - 6, 12)),
+                    cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 80), 2)
+
+    if lane_model is not None:
+        frame = lane_model.draw_lanes(frame, lane_status)
+
+    pot_score = min(1.0, sum(float(p.get("severity", 0.0)) for p in potholes))
+    lane_score = 1.0 if lane_status.get("is_crossing") else 0.0
+    prev_risk = float(browser_stream.get("prev_risk", 0.0))
+    risk = min(0.35 * haz_score + 0.35 * pot_score + 0.15 * lane_score + 0.15 * prev_risk, 1.0)
+    browser_stream["prev_risk"] = 0.65 * prev_risk + 0.35 * risk
+    risk_level = "CRITICAL" if risk > 0.8 else "HIGH" if risk > 0.6 else "MEDIUM" if risk > 0.3 else "LOW"
+
+    cv2.rectangle(frame, (0, 0), (frame.shape[1], 42), (15, 15, 20), -1)
+    cv2.putText(frame, f"Hazards:{len(hazards)}  Potholes:{len(potholes)}  Signs:{len(signs)}",
+                (18, 27), cv2.FONT_HERSHEY_SIMPLEX, 0.58, (220, 220, 220), 1)
+
+    now = time.time()
+    if (hazards or potholes or signs) and now - browser_stream.get("last_det_log", 0.0) > 5.0:
+        browser_stream["last_det_log"] = now
+        ts_d = datetime.now()
+        ts_iso = ts_d.isoformat()
+        try:
+            conn = sqlite3.connect(DB_PATH)
+            if hazards:
+                hz_fn = f"HZ_{ts_d.strftime('%Y%m%d_%H%M%S')}.jpg"
+                save_evidence(frame, hz_fn)
+                conn.execute(
+                    "INSERT INTO events_v2 (ts,type,value,details,vehicle_id,image_path,risk_level) VALUES (?,?,?,?,?,?,?)",
+                    (ts_iso, "hazard", 1.0, str([h.get("subtype", "unknown") for h in hazards]), vehicle_id, hz_fn, risk_level),
+                )
+            if potholes:
+                ph_fn = f"PH_{ts_d.strftime('%Y%m%d_%H%M%S')}.jpg"
+                save_evidence(frame, ph_fn)
+                max_sev = max(float(p.get("severity", 0.0)) for p in potholes)
+                conn.execute(
+                    "INSERT INTO events_v2 (ts,type,value,details,vehicle_id,image_path,risk_level) VALUES (?,?,?,?,?,?,?)",
+                    (ts_iso, "pothole", max_sev, f"count={len(potholes)}", vehicle_id, ph_fn, risk_level),
+                )
+            if signs:
+                conn.execute(
+                    "INSERT INTO events_v2 (ts,type,value,details,vehicle_id,risk_level) VALUES (?,?,?,?,?,?)",
+                    (ts_iso, "sign", float(len(signs)), str([s.get("subtype", "sign") for s in signs]), vehicle_id, risk_level),
+                )
+            conn.commit()
+            conn.close()
+        except Exception as dbe:
+            print(f"[BROWSER FRAME DB] {dbe}")
+
+    _, buf = cv2.imencode(".jpg", frame, [cv2.IMWRITE_JPEG_QUALITY, 60])
+    frame_bytes = buf.tobytes()
+    elapsed = max(time.time() - t_start, 1e-6)
+    instant_fps = 1.0 / elapsed
+    browser_stream["fps"] = instant_fps if browser_stream.get("fps", 0.0) <= 0 else 0.85 * browser_stream["fps"] + 0.15 * instant_fps
+
+    with stream_lock:
+        latest_frame = frame_bytes
+        latest_frame_id += 1
+        stream_stats.update({
+            "risk": round(float(risk), 3),
+            "risk_level": risk_level,
+            "hazards": len(hazards),
+            "potholes": len(potholes),
+            "signs": [s.get("subtype", "sign") for s in signs],
+            "lane_crossing": bool(lane_status.get("is_crossing")),
+            "speed_limit": None,
+            "frame": frame_n,
+            "fps": round(float(browser_stream["fps"]), 1),
+            "source": "Phone Camera",
+        })
+    return frame_bytes, dict(stream_stats)
+
+
 # ── Routes ────────────────────────────────────────────────────────────────────
 
 @app.route('/api/stream')
@@ -1162,6 +1327,21 @@ def stream_start():
     stream_thread  = threading.Thread(target=_process_stream, args=(source, vehicle_id, None, record), daemon=True)
     stream_thread.start()
     return jsonify({'ok': True, 'source': str(source), 'recording': record})
+
+@app.route('/api/stream/browser-frame', methods=['POST'])
+@require_auth
+def stream_browser_frame():
+    frame = _decode_uploaded_frame()
+    if frame is None:
+        return jsonify({'error': 'frame file is required'}), 400
+    vehicle_id = request.form.get('vehicle_id', 'PHONE-CAM')
+    frame_bytes, stats = _process_browser_frame(frame, vehicle_id=vehicle_id)
+    import base64
+    return jsonify({
+        'ok': True,
+        'image': 'data:image/jpeg;base64,' + base64.b64encode(frame_bytes).decode('ascii'),
+        'stats': stats,
+    })
 
 @app.route('/api/stream/stop', methods=['POST'])
 @require_auth
